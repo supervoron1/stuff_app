@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Учёт наличия товаров
 
-## Getting Started
+Мобильное PWA-приложение на Next.js 16 для учёта наличия товаров по категориям. Используется с телефонов/планшетов, синхронизируется между устройствами и работает офлайн.
 
-First, run the development server:
+## Возможности
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Категории и товары (CRUD)** — создание/редактирование/удаление; название обязательно, описание и фото — опционально
+- **Наличие товара** — 🟢 достаточно / 🟡 мало / 🔴 отсутствует; тап по цветному индикатору циклично меняет статус
+- **Мобильный UI** — фильтры по статусу (все/достаточно/мало/нет), поиск по названию, крупные тач-элементы
+- **Мультиустройственность** — единая база данных, синхронизация каждые 10 секунд + ручная кнопка ⟳
+- **Офлайн-режим** — данные кэшируются в IndexedDB, изменения офлайн сохраняются в очередь и отправляются при появлении сети (outbox pattern)
+- **Разрешение конфликтов** — last-write-wins: при одновременном изменении с разных устройств побеждает более поздняя запись (по `updatedAt`)
+- **История изменений (аудит)** — кто, что и когда менял; имя пользователя запрашивается при первом входе
+- **Фото товаров** — загрузка на Supabase Storage (только онлайн), отображение в списке
+- **PWA** — установка на главный экран, полноэкранный режим, офлайн-открытие
+- **Живое обновление** — открытые устройства автоматически подтягивают изменения других устройств
+
+## Технологии
+
+- **Next.js 16** (App Router), **React 19**, **TypeScript**, **Tailwind CSS 4**
+- **Prisma 7** + **PostgreSQL (Neon)** — основная база данных (бесплатная, работает по IPv4)
+- **Supabase Storage** — хранение фото товаров
+- **Dexie (IndexedDB)** — офлайн-кэш и очередь синхронизации
+- **Vercel** — хостинг (рекомендуется)
+
+## Структура проекта
+
+```
+app/
+  api/
+    sync/    — синхронизация: GET (полный снимок/pull), POST (приём офлайн-операций/push)
+    audit/   — история изменений
+    upload/  — загрузка фото в Supabase Storage
+  page.tsx   — главная страница (SSR + клиентское приложение)
+  layout.tsx — корневой layout (мобильный viewport, шрифты)
+  manifest.ts— PWA-манифест
+  globals.css
+components/
+  inventory.tsx        — главный компонент (списки, фильтры, модалки)
+  modal.tsx            — мобильная модалка (bottom sheet)
+  forms.tsx            — формы категории/товара (с загрузкой фото)
+  stock-indicator.tsx  — цветной индикатор наличия (тап = смена статуса)
+  history.tsx          — окно истории изменений
+  pwa-register.tsx     — регистрация Service Worker
+hooks/
+  use-inventory.ts     — офлайн-first хук: кэш IndexedDB + периодическая синхронизация
+  use-user.ts          — имя пользователя (localStorage)
+lib/
+  prisma.ts            — Prisma Client (driver adapter @prisma/adapter-pg)
+  supabase.ts          — серверный клиент Supabase (для фото)
+  db.ts                — локальная БД Dexie (категории, товары, outbox)
+  sync.ts              — push/pull синхронизация
+  actions.ts           — Server Actions (CRUD, смена статуса, аудит)
+  data.ts              — чтение данных с сервера
+  constants.ts         — статусы, цвета, интервалы
+  types.ts             — общие типы
+prisma/
+  schema.prisma        — схема БД (Category, Product, AuditLog)
+  migrations/          — применённые миграции
+prisma.config.ts       — конфигурация Prisma CLI
+public/
+  sw.js                — Service Worker (кэширование app shell и API)
+  icons/               — иконки PWA (генерируются скриптом)
+scripts/
+  generate-icons.mjs   — генерация PWA-иконок
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Схема базы данных
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Category**: `id (uuid)`, `name`, `sortOrder`, `createdAt`, `updatedAt`
+- **Product**: `id (uuid)`, `categoryId → Category`, `name`, `description?`, `photoUrl?`, `stockStatus` (`SUFFICIENT | LOW | OUT`), `updatedAt` (используется для last-write-wins), `updatedBy`, `createdAt`
+- **AuditLog**: `id`, `action`, `entity`, `entityId`, `oldValue?`, `newValue?`, `userName`, `createdAt`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Локальная настройка
 
-## Learn More
+### 1. Создайте базу данных (Neon)
 
-To learn more about Next.js, take a look at the following resources:
+1. Зарегистрируйтесь на [neon.tech](https://neon.tech) (можно через GitHub/Google).
+2. Создайте проект (регион любой, например EU Central).
+3. Скопируйте **Connection string** вида:
+   ```
+   postgresql://neondb_owner:ПАРОЛЬ@ep-xxxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. Создайте проект Supabase (для фото)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Создайте проект на [supabase.com](https://supabase.com).
+2. Из **Settings → API** скопируйте:
+   - Project URL (например `https://xxxx.supabase.co`)
+   - anon public key (`sb_publishable_...`)
+   - service_role secret key (`sb_secret_...`)
+3. Bucket `products` в Storage создастся автоматически при первой загрузке фото.
 
-## Deploy on Vercel
+### 3. Настройте переменные окружения
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Заполните `.env` (уже закоммичен в `.gitignore`):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```env
+# База данных (Neon)
+DATABASE_URL="postgresql://neondb_owner:ПАРОЛЬ@ep-xxxx.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+
+# Supabase (только для фото)
+NEXT_PUBLIC_SUPABASE_URL="https://xxxx.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_..."
+SUPABASE_SERVICE_ROLE_KEY="sb_secret_..."
+
+# Домен приложения (для Service Worker)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+### 4. Примените миграцию и запустите
+
+```bash
+npm install
+npx prisma migrate dev          # создаст таблицы в Neon
+npm run dev                     # http://localhost:3000
+```
+
+## Деплой на Vercel
+
+1. Загрузите код на **GitHub** (`.env` не попадёт — он в `.gitignore`).
+2. В [Vercel](https://vercel.com): **Add New Project** → импортируйте репозиторий.
+3. В настройках проекта (**Settings → Environment Variables**) добавьте те же переменные, что в `.env`:
+   - `DATABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_APP_URL` = адрес вашего деплоя (например `https://мой-проект.vercel.app`)
+4. **Deploy** → получите https-адрес, доступный с любого устройства.
+
+> Для работы офлайн и установки PWA сайт должен открываться по **https** (на Vercel это включено по умолчанию).
+
+## Установка PWA на телефон
+
+### Android (Chrome)
+1. Откройте адрес приложения в Chrome.
+2. Меню **⋮** → **«Добавить на главный экран»** / **«Установить приложение»**.
+3. Иконка появится на рабочем столе — приложение откроется в полноэкранном режиме.
+
+### iPhone / iPad (Safari)
+1. Откройте адрес в **Safari**.
+2. Кнопка **«Поделиться»** (квадрат со стрелкой) → **«На экран "Домой"»**.
+3. **«Добавить»** → иконка появится на домашнем экране.
+
+После установки приложение работает офлайн: данные кэшируются, изменения копятся в очереди и синхронизируются при появлении сети.
+
+## Полезные команды
+
+```bash
+npm run dev          # dev-сервер
+npm run build        # продакшен-сборка
+npm run start        # запуск production
+npx prisma studio    # просмотр базы данных (UI)
+npx prisma migrate dev --name название  # новая миграция
+node scripts/generate-icons.mjs  # пересоздать PWA-иконки

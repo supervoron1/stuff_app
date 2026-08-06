@@ -1,0 +1,59 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum StockStatus {
+  SUFFICIENT // Зелёный — достаточно
+  LOW        // Жёлтый — мало
+  OUT        // Красный — отсутствует
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@index([sortOrder])
+  @@map("categories")
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  categoryId  String
+  name        String
+  description String?
+  photoUrl    String?
+  stockStatus StockStatus @default(SUFFICIENT)
+  updatedAt   DateTime    @updatedAt
+  updatedBy   String?
+  createdAt   DateTime    @default(now())
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([stockStatus])
+  @@map("products")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  String?
+  newValue  String?
+  userName  String
+  createdAt DateTime @default(now())
+
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,227 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { db } from "@/lib/db";
+import { SYNC_INTERVAL_MS } from "@/lib/constants";
+import { syncNow } from "@/lib/sync";
+import type { Category, Product } from "@/lib/types";
+
+interface InventoryState {
+  categories: Category[];
+  products: Product[];
+  loading: boolean;
+  online: boolean;
+  pendingOps: number;
+  lastSynced: Date | null;
+}
+
+/**
+ * Хук офлайн-первого доступа к данным:
+ * - при загрузке — читает из IndexedDB, затем тянет свежие данные
+ * - периодически синхронизируется (push + pull) каждые SYNC_INTERVAL_MS
+ * - слушает события online/offline
+ */
+export function useInventory() {
+  const [state, setState] = useState<InventoryState>({
+    categories: [],
+    products: [],
+    loading: true,
+    online: typeof navigator === "undefined" ? true : navigator.onLine,
+    pendingOps: 0,
+    lastSynced: null,
+  });
+
+  const syncingRef = useRef(false);
+
+  const refreshLocalCount = useCallback(async () => {
+    const count = await db.outbox.count();
+    setState((s) => ({ ...s, pendingOps: count }));
+  }, []);
+
+  const loadFromLocal = useCallback(async () => {
+    const [categories, products] = await Promise.all([
+      db.categories.orderBy("sortOrder").toArray(),
+      db.products.toArray(),
+    ]);
+    setState((s) => ({
+      ...s,
+      categories,
+      products,
+      loading: false,
+    }));
+    await refreshLocalCount();
+  }, [refreshLocalCount]);
+
+  const doSync = useCallback(async () => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    try {
+      await syncNow();
+      await loadFromLocal();
+      setState((s) => ({ ...s, lastSynced: new Date(), online: true }));
+    } catch {
+      setState((s) => ({ ...s, online: false }));
+    } finally {
+      syncingRef.current = false;
+    }
+  }, [loadFromLocal]);
+
+  const handleOnline = useCallback(() => {
+    setState((s) => ({ ...s, online: true }));
+    doSync();
+  }, [doSync]);
+
+  const handleOffline = useCallback(() => {
+    setState((s) => ({ ...s, online: false }));
+  }, []);
+
+  useEffect(() => {
+    loadFromLocal();
+    doSync();
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    const interval = setInterval(doSync, SYNC_INTERVAL_MS);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      clearInterval(interval);
+    };
+  }, [loadFromLocal, doSync, handleOnline, handleOffline]);
+
+  return {
+    ...state,
+    refresh: doSync,
+    refreshLocal: loadFromLocal,
+  };
+}
+
+/**
+ * Вспомогательные клиентские операции: записывают в локальную БД
+ * и ставят операцию в outbox для последующей отправки.
+ */
+export async function createCategoryLocal(id: string, name: string, sortOrder: number, updatedBy: string | null = null) {
+  const now = new Date().toISOString();
+  const category: Category = { id, name, sortOrder, createdAt: now, updatedAt: now };
+  await db.categories.add(category);
+  await db.outbox.add({
+    type: "createCategory" as const,
+    id,
+    payload: { name, updatedBy },
+    createdAt: now,
+  });
+  return category;
+}
+
+export async function updateCategoryLocal(id: string, name: string, updatedBy: string | null = null) {
+  const now = new Date().toISOString();
+  await db.categories.update(id, { name, updatedAt: now });
+  await db.outbox.add({
+    type: "updateCategory" as const,
+    id,
+    payload: { name, updatedBy },
+    createdAt: now,
+  });
+}
+
+export async function deleteCategoryLocal(id: string, updatedBy: string | null = null) {
+  const now = new Date().toISOString();
+  await db.products.where("categoryId").equals(id).delete();
+  await db.categories.delete(id);
+  await db.outbox.add({
+    type: "deleteCategory" as const,
+    id,
+    payload: { updatedBy },
+    createdAt: now,
+  });
+}
+
+export async function createProductLocal(
+  id: string,
+  categoryId: string,
+  name: string,
+  description: string | null,
+  photoUrl: string | null,
+  updatedBy: string | null = null
+) {
+  const now = new Date().toISOString();
+  const product: Product = {
+    id,
+    categoryId,
+    name,
+    description,
+    photoUrl,
+    stockStatus: "SUFFICIENT",
+    updatedAt: now,
+    updatedBy,
+    createdAt: now,
+  };
+  await db.products.add(product);
+  await db.outbox.add({
+    type: "createProduct" as const,
+    id,
+    payload: { categoryId, name, description, photoUrl, updatedBy },
+    createdAt: now,
+  });
+  return product;
+}
+
+export async function updateProductLocal(
+  id: string,
+  name: string,
+  description: string | null,
+  photoUrl: string | null,
+  updatedBy: string | null = null
+) {
+  const now = new Date().toISOString();
+  await db.products.update(id, { name, description, photoUrl, updatedAt: now, updatedBy });
+  await db.outbox.add({
+    type: "updateProduct" as const,
+    id,
+    payload: { name, description, photoUrl, updatedBy },
+    createdAt: now,
+  });
+}
+
+export async function deleteProductLocal(id: string, updatedBy: string | null = null) {
+  const now = new Date().toISOString();
+  await db.products.delete(id);
+  await db.outbox.add({
+    type: "deleteProduct" as const,
+    id,
+    payload: { updatedBy },
+    createdAt: now,
+  });
+}
+
+export async function setStockStatusLocal(
+  id: string,
+  stockStatus: Product["stockStatus"],
+  updatedBy: string | null,
+  updatedAt?: string
+) {
+  const now = updatedAt ?? new Date().toISOString();
+  await db.products.update(id, { stockStatus, updatedAt: now, updatedBy });
+  await db.outbox.add({
+    type: "setStockStatus" as const,
+    id,
+    payload: { stockStatus, updatedBy },
+    createdAt: now,
+  });
+}
+
+export function createId(): string {
+  // crypto.randomUUID() доступен в современных браузерах (включая мобильные, в secure context).
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  // Фолбэк
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}

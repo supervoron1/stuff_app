@@ -1,0 +1,83 @@
+import { db, isOnline } from "./db";
+import type { Category, Product, SyncOperation } from "./types";
+
+/**
+ * Полный снимок с сервера (pull).
+ */
+async function fetchSnapshot() {
+  const res = await fetch("/api/sync", { cache: "no-store" });
+  if (!res.ok) throw new Error("Не удалось получить данные");
+  const data = await res.json();
+  return {
+    categories: data.categories as Category[],
+    products: data.products as Product[],
+  };
+}
+
+/**
+ * Замена локального кэша полным снимком (после успешного push).
+ */
+async function replaceCache(categories: Category[], products: Product[]) {
+  await db.transaction("rw", [db.categories, db.products], async () => {
+    await db.categories.clear();
+    await db.products.clear();
+    await db.categories.bulkPut(categories);
+    await db.products.bulkPut(products);
+  });
+}
+
+/**
+ * Пуш очереди исходящих операций на сервер.
+ * При успехе — очередь очищается, локальный кэш заменяется свежим снимком.
+ */
+export async function pushOutbox(): Promise<{ applied: number; errors: number }> {
+  if (!isOnline()) return { applied: 0, errors: 0 };
+
+  const operations = await db.outbox.orderBy("createdAt").toArray();
+  if (operations.length === 0) return { applied: 0, errors: 0 };
+
+  const res = await fetch("/api/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operations }),
+  });
+
+  if (!res.ok) throw new Error("Ошибка синхронизации");
+
+  const data = await res.json();
+  await db.outbox.clear();
+
+  // После успешного push — подтягиваем свежий снимок (pull).
+  if (data.ok) {
+    const snapshot = await fetchSnapshot();
+    await replaceCache(snapshot.categories, snapshot.products);
+  }
+
+  return { applied: data.applied ?? operations.length, errors: data.errors ?? 0 };
+}
+
+/**
+ * Полная синхронизация: push очереди, затем pull снимка.
+ */
+export async function syncNow(): Promise<{ pushed: number; categories: number; products: number }> {
+  const result = await pushOutbox();
+
+  const snapshot = await fetchSnapshot();
+  await replaceCache(snapshot.categories, snapshot.products);
+
+  return {
+    pushed: result.applied,
+    categories: snapshot.categories.length,
+    products: snapshot.products.length,
+  };
+}
+
+/**
+ * Добавление операции в очередь (для офлайн-мутаций).
+ */
+export async function queueOperation(op: Omit<SyncOperation, "createdAt">) {
+  await db.outbox.add({
+    ...op,
+    createdAt: new Date().toISOString(),
+  } as SyncOperation);
+}
