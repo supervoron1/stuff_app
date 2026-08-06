@@ -40,23 +40,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (operations.length === 0) {
-    return NextResponse.json({ ok: true, applied: 0 });
-  }
-
   let applied = 0;
   let errors = 0;
 
-  for (const op of operations) {
-    try {
-      await applyOp(op);
-      applied++;
-    } catch {
-      errors++;
+  if (operations.length > 0) {
+    for (const op of operations) {
+      try {
+        await applyOp(op);
+        applied++;
+      } catch {
+        errors++;
+      }
     }
   }
 
-  return NextResponse.json({ ok: errors === 0, applied, errors });
+  // Возвращаем актуальный снимок в том же ответе, чтобы клиенту
+  // не пришлось делать отдельный GET (экономия RTT и хол. старта).
+  const [categories, products] = await Promise.all([
+    prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.product.findMany({ orderBy: { name: "asc" } }),
+  ]);
+
+  return NextResponse.json({
+    ok: errors === 0,
+    applied,
+    errors,
+    snapshot: { categories, products, serverTime: new Date().toISOString() },
+  });
 }
 
 const STATUS_LABELS: Record<string, string> = {

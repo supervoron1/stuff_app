@@ -47,10 +47,9 @@ export async function pushOutbox(): Promise<{ applied: number; errors: number }>
   const data = await res.json();
   await db.outbox.clear();
 
-  // После успешного push — подтягиваем свежий снимок (pull).
-  if (data.ok) {
-    const snapshot = await fetchSnapshot();
-    await replaceCache(snapshot.categories, snapshot.products);
+  // Сервер возвращает свежий снимок в том же ответе — обновляем кэш без лишнего GET.
+  if (data.snapshot) {
+    await replaceCache(data.snapshot.categories, data.snapshot.products);
   }
 
   return { applied: data.applied ?? operations.length, errors: data.errors ?? 0 };
@@ -58,18 +57,28 @@ export async function pushOutbox(): Promise<{ applied: number; errors: number }>
 
 /**
  * Полная синхронизация: push очереди, затем pull снимка.
+ * Если очередь пустая — делаем один GET вместо трёх запросов.
  */
 export async function syncNow(): Promise<{ pushed: number; categories: number; products: number }> {
+  const operations = await db.outbox.orderBy("createdAt").toArray();
+
+  if (operations.length === 0) {
+    const snapshot = await fetchSnapshot();
+    await replaceCache(snapshot.categories, snapshot.products);
+    return { pushed: 0, categories: snapshot.categories.length, products: snapshot.products.length };
+  }
+
   const result = await pushOutbox();
+  const { categories, products } = await getCachedSnapshot();
+  return { pushed: result.applied, categories: categories.length, products: products.length };
+}
 
-  const snapshot = await fetchSnapshot();
-  await replaceCache(snapshot.categories, snapshot.products);
-
-  return {
-    pushed: result.applied,
-    categories: snapshot.categories.length,
-    products: snapshot.products.length,
-  };
+async function getCachedSnapshot() {
+  const [categories, products] = await Promise.all([
+    db.categories.orderBy("sortOrder").toArray(),
+    db.products.toArray(),
+  ]);
+  return { categories, products };
 }
 
 /**

@@ -15,7 +15,7 @@ import type { Category, Product, StockStatus } from "@/lib/types";
 type Filter = "ALL" | StockStatus;
 
 export function InventoryApp() {
-  const { categories, products, loading, online, pendingOps, refresh } = useInventory();
+  const { categories, products, loading, online, pendingOps, refresh, refreshLocal } = useInventory();
   const { userName, setUserName } = useUser();
 
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -55,8 +55,14 @@ export function InventoryApp() {
 
   async function cycleStatus(product: Product) {
     const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(product.stockStatus) + 1) % STATUS_CYCLE.length];
+    // 1) Пишем в IndexedDB и сразу обновляем UI из локального кэша — без ожидания сети.
     await setStockStatusLocal(product.id, next, userName || "Аноним");
-    await refresh();
+    refreshLocal();
+
+    // 2) Синхронизация с сервером уходит в фон и не блокирует кнопку.
+    if (online) {
+      refresh().catch(() => {});
+    }
   }
 
   async function handleCategorySubmit(id: string, name: string) {
