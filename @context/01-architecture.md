@@ -70,7 +70,8 @@
 | `app/api/upload/route.ts` | POST — загрузка фото в Supabase Storage |
 
 ## Примечания
-- Наличие: `SUFFICIENT` / `LOW` / `OUT` (в `prisma/schema.prisma` — enum `StockStatus`).
+- Наличие: `SUFFICIENT` (🟢 есть) / `LOW` (🟡 мало) / `OUT` (🔴 нет) — enum `StockStatus` в `prisma/schema.prisma`; подписи UI — `lib/constants.ts`.
+- Подписи статусов в двух местах: UI — «Есть»/«Мало»/«Нет»; аудит на сервере (`app/api/sync/route.ts`) — «Достаточно»/«Мало»/«Отсутствует».
 - Запрос синхронизации оптимизирован: **1 POST вместо 3 запросов** (сервер возвращает снимок в ответе на push).
 - `updatedAt` у товара — источник true для last-write-wins.
 - Фильтрация списка на главном экране: `visibleCategories` (по статусу) + `productsByCategory` (статус + поиск). При выбранном статусе категории без подходящих товаров скрываются; если ни одна не подошла — пустое состояние «Нет товаров с таким статусом».

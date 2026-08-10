@@ -24,7 +24,7 @@
 ## Схема БД (`prisma/schema.prisma`)
 
 ```prisma
-enum StockStatus { SUFFICIENT LOW OUT }
+enum StockStatus { SUFFICIENT LOW OUT }  // UI-подписи: 🟢 Есть / 🟡 Мало / 🔴 Нет
 
 model Category {
   id        String    @id @default(uuid())
