@@ -21,6 +21,9 @@ export function InventoryApp() {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
 
+  // Аккордеон категорий: множество id свёрнутых категорий (по умолчанию все развёрнуты).
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
   // Модалки
   const [categoryModal, setCategoryModal] = useState<{ open: boolean; editing: Category | null }>({ open: false, editing: null });
   const [productModal, setProductModal] = useState<{ open: boolean; categoryId: string; editing: Product | null }>({ open: false, categoryId: "", editing: null });
@@ -48,6 +51,33 @@ export function InventoryApp() {
     if (filter === "ALL") return categories;
     return categories.filter((cat) => (productsByCategory.get(cat.id)?.length ?? 0) > 0);
   }, [categories, filter, productsByCategory]);
+
+  // При активном фильтре статуса или непустом поиске категории принудительно
+  // развёрнуты, чтобы отфильтрованные товары были сразу видны.
+  const forceExpand = filter !== "ALL" || search.trim() !== "";
+
+  const isCategoryExpanded = (id: string) => forceExpand || !collapsedIds.has(id);
+
+  const toggleCategory = (id: string) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Все ли видимые категории свёрнуты (для подписи кнопки «Свернуть все/Развернуть все»).
+  const allCollapsed =
+    visibleCategories.length > 0 && visibleCategories.every((cat) => collapsedIds.has(cat.id));
+
+  const toggleAll = () => {
+    if (allCollapsed) {
+      setCollapsedIds(new Set());
+    } else {
+      setCollapsedIds(new Set(visibleCategories.map((cat) => cat.id)));
+    }
+  };
 
   const counts = useMemo(() => {
     const c = { SUFFICIENT: 0, LOW: 0, OUT: 0, total: products.length };
@@ -182,6 +212,20 @@ export function InventoryApp() {
         ))}
       </div>
 
+      {/* Свернуть/развернуть все категории */}
+      {visibleCategories.length > 0 && (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={toggleAll}
+            disabled={forceExpand}
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {allCollapsed ? "Развернуть все" : "Свернуть все"}
+          </button>
+        </div>
+      )}
+
       {/* Категории с товарами */}
       {categories.length === 0 && (
         <div className="py-10 text-center text-gray-500">
@@ -204,11 +248,23 @@ export function InventoryApp() {
 
       {visibleCategories.map((cat) => {
         const items = productsByCategory.get(cat.id) ?? [];
+        const expanded = isCategoryExpanded(cat.id);
         return (
           <div key={cat.id} className="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">{cat.name}</h2>
-              <div className="flex gap-1">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => toggleCategory(cat.id)}
+                aria-expanded={expanded}
+                className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+              >
+                <span className="shrink-0 text-sm text-gray-400">{expanded ? "▾" : "▸"}</span>
+                <span className="truncate font-semibold text-gray-900">{cat.name}</span>
+                {items.length > 0 && (
+                  <span className="shrink-0 text-xs font-normal text-gray-400">{items.length}</span>
+                )}
+              </button>
+              <div className="flex shrink-0 gap-1">
                 <button
                   onClick={() => setCategoryModal({ open: true, editing: cat })}
                   className="rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100"
@@ -226,6 +282,12 @@ export function InventoryApp() {
                     // При создании товара сбрасываем фильтр статуса на «Все»,
                     // иначе новый товар (по умолчанию «Достаточно») не будет виден в списке.
                     setFilter("ALL");
+                    // Разворачиваем категорию, чтобы новый товар был сразу виден.
+                    setCollapsedIds((prev) => {
+                      const next = new Set(prev);
+                      next.delete(cat.id);
+                      return next;
+                    });
                     setProductModal({ open: true, categoryId: cat.id, editing: null });
                   }}
                   className="rounded-lg px-2 py-1 text-sm text-green-600 hover:bg-green-50"
@@ -235,41 +297,47 @@ export function InventoryApp() {
               </div>
             </div>
 
-            {items.length === 0 ? (
-              <p className="py-2 text-sm text-gray-400">Нет товаров</p>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {items.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-2 py-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      {p.photoUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-gray-900">{p.name}</p>
-                        {p.description && <p className="truncate text-xs text-gray-500">{p.description}</p>}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <StockIndicator status={p.stockStatus} interactive onCycle={() => cycleStatus(p)} />
-                      <button
-                        onClick={() => setProductModal({ open: true, categoryId: p.categoryId, editing: p })}
-                        className="rounded-lg px-2 py-1 text-gray-400 hover:bg-gray-100"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        onClick={() => setDeleteModal({ category: null, product: p })}
-                        className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-50"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                {items.length === 0 ? (
+                  <p className="py-2 text-sm text-gray-400">Нет товаров</p>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {items.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2 py-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          {p.photoUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-gray-900">{p.name}</p>
+                            {p.description && <p className="truncate text-xs text-gray-500">{p.description}</p>}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <StockIndicator status={p.stockStatus} interactive onCycle={() => cycleStatus(p)} />
+                          <button
+                            onClick={() => setProductModal({ open: true, categoryId: p.categoryId, editing: p })}
+                            className="rounded-lg px-2 py-1 text-gray-400 hover:bg-gray-100"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            onClick={() => setDeleteModal({ category: null, product: p })}
+                            className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-50"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         );
       })}
