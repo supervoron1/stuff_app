@@ -42,6 +42,13 @@ export function InventoryApp() {
     return map;
   }, [products, filter, search]);
 
+  // Категории для показа с учётом выбранного фильтра:
+  // при конкретном статусе — только те, где есть хотя бы один товар с этим статусом.
+  const visibleCategories = useMemo(() => {
+    if (filter === "ALL") return categories;
+    return categories.filter((cat) => (productsByCategory.get(cat.id)?.length ?? 0) > 0);
+  }, [categories, filter, productsByCategory]);
+
   const counts = useMemo(() => {
     const c = { SUFFICIENT: 0, LOW: 0, OUT: 0, total: products.length };
     for (const p of products) c[p.stockStatus]++;
@@ -188,7 +195,14 @@ export function InventoryApp() {
         </div>
       )}
 
-      {categories.map((cat) => {
+      {/* Глобальное пустое состояние при активном фильтре статуса */}
+      {filter !== "ALL" && categories.length > 0 && visibleCategories.length === 0 && (
+        <div className="py-10 text-center text-gray-500">
+          <p>Нет товаров с таким статусом</p>
+        </div>
+      )}
+
+      {visibleCategories.map((cat) => {
         const items = productsByCategory.get(cat.id) ?? [];
         return (
           <div key={cat.id} className="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
@@ -208,7 +222,12 @@ export function InventoryApp() {
                   ✕
                 </button>
                 <button
-                  onClick={() => setProductModal({ open: true, categoryId: cat.id, editing: null })}
+                  onClick={() => {
+                    // При создании товара сбрасываем фильтр статуса на «Все»,
+                    // иначе новый товар (по умолчанию «Достаточно») не будет виден в списке.
+                    setFilter("ALL");
+                    setProductModal({ open: true, categoryId: cat.id, editing: null });
+                  }}
                   className="rounded-lg px-2 py-1 text-sm text-green-600 hover:bg-green-50"
                 >
                   +
@@ -217,9 +236,7 @@ export function InventoryApp() {
             </div>
 
             {items.length === 0 ? (
-              <p className="py-2 text-sm text-gray-400">
-                {filter === "ALL" ? "Нет товаров" : "Нет товаров с таким статусом"}
-              </p>
+              <p className="py-2 text-sm text-gray-400">Нет товаров</p>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {items.map((p) => (
