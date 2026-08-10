@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { useInventory, setStockStatusLocal, createCategoryLocal, updateCategoryLocal, deleteCategoryLocal, createProductLocal, updateProductLocal, deleteProductLocal } from "@/hooks/use-inventory";
 import { useUser } from "@/hooks/use-user";
-import { StockIndicator } from "./stock-indicator";
+import { StockCheck } from "./stock-check";
 import { Modal } from "./modal";
 import { CategoryForm, ProductForm } from "./forms";
 import { History } from "./history";
@@ -318,7 +318,7 @@ export function InventoryApp() {
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <StockIndicator status={p.stockStatus} interactive onCycle={() => cycleStatus(p)} />
+                          <StockCheck status={p.stockStatus} interactive onCycle={() => cycleStatus(p)} />
                           <button
                             onClick={() => setProductModal({ open: true, categoryId: p.categoryId, editing: p })}
                             className="rounded-lg px-2 py-1 text-gray-400 hover:bg-gray-100"

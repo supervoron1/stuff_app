@@ -53,7 +53,8 @@
 |---|---|
 | `components/inventory.tsx` | Главный экран: списки, аккордеон категорий, фильтры (скрытие категорий), поиск, модалки |
 | `components/forms.tsx` | Формы категории/товара, загрузка фото |
-| `components/stock-indicator.tsx` | Цветная кнопка статуса (тап = смена) |
+| `components/stock-check.tsx` | Галочка ✓ цветом по статусу (тап = смена); используется в списке товаров |
+| `components/stock-indicator.tsx` | Старый индикатор-«пилюля» (не используется, оставлен по просьбе дизайнера) |
 | `components/history.tsx` | Окно истории изменений |
 | `components/modal.tsx` | Мобильная модалка (bottom sheet) |
 | `components/pwa-register.tsx` | Регистрация Service Worker |
