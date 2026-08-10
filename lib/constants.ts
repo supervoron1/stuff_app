@@ -6,9 +6,9 @@ import type { StockStatus } from "./types";
 export const STATUS_CYCLE: StockStatus[] = ["SUFFICIENT", "LOW", "OUT"];
 
 export const STATUS_LABELS: Record<StockStatus, string> = {
-  SUFFICIENT: "Достаточно",
+  SUFFICIENT: "Есть",
   LOW: "Мало",
-  OUT: "Отсутствует",
+  OUT: "Нет",
 };
 
 export const STATUS_COLORS: Record<StockStatus, string> = {
