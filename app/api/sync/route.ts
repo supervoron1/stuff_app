@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { STATUS_LABELS } from "@/lib/constants";
 import type { StockStatus } from "@/lib/types";
 
 /**
@@ -68,12 +69,6 @@ export async function POST(request: Request) {
     snapshot: { categories, products, serverTime: new Date().toISOString() },
   });
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  SUFFICIENT: "Достаточно",
-  LOW: "Мало",
-  OUT: "Отсутствует",
-};
 
 async function logAudit(
   action: string,
