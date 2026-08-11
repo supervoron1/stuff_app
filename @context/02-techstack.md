@@ -7,11 +7,12 @@
 | Next.js | 16.3.0 | App Router, SSR, Server Actions, API routes |
 | React | 19.2.8 | UI |
 | TypeScript | 5.9.3 | Типизация (strict) |
-| Tailwind CSS | 4 | Стили |
+| Tailwind CSS | 4 | Стили (class-based dark mode через `@custom-variant dark`) |
 | Prisma | 7.9.1 | ORM (новый генератор `prisma-client`, driver adapter `@prisma/adapter-pg`) |
 | PostgreSQL | — | Neon (бесплатный хостинг, IPv4) |
 | Supabase JS | — | Storage (фото товаров), bucket `products`, public |
 | Dexie | — | IndexedDB: локальный кэш + очередь outbox |
+| @dnd-kit | core 6.3.1 / sortable 10.0.0 / utilities 3.2.2 | Drag-n-drop товаров внутри категорий |
 | Zod | — | Валидация форм (Server Actions / API) |
 
 ## Особенности Prisma 7 (важно!)
@@ -33,6 +34,9 @@ model Category {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   products  Product[]
+
+  @@index([sortOrder])
+  @@map("categories")
 }
 
 model Product {
@@ -42,10 +46,16 @@ model Product {
   description String?
   photoUrl    String?
   stockStatus StockStatus @default(SUFFICIENT)
-  updatedAt   DateTime    @updatedAt   // ← для last-write-wins
+  sortOrder   Int         @default(0)   // ← ручной порядок в категории (drag-n-drop)
+  updatedAt   DateTime    @updatedAt    // ← для last-write-wins
   updatedBy   String?
   createdAt   DateTime    @default(now())
   category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([categoryId, sortOrder])
+  @@index([stockStatus])
+  @@map("products")
 }
 
 model AuditLog {
@@ -57,6 +67,10 @@ model AuditLog {
   newValue  String?
   userName  String
   createdAt DateTime @default(now())
+
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 ```
 
@@ -79,8 +93,15 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 - `@prisma/adapter-pg` — драйвер Prisma для PostgreSQL (обязательный).
 - `@supabase/supabase-js` — клиент Supabase.
 - `dexie` — IndexedDB.
+- `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` — drag-n-drop (сортировка товаров).
 - `zod` — валидация.
 - `prisma` (dev) — CLI.
+
+## Тема (dark mode)
+
+- Class-based: `@custom-variant dark` в `app/globals.css`; класс `dark` на `<html>`.
+- `hooks/use-theme.ts` — режимы light/dark/system, localStorage, анти-flash-скрипт в `app/layout.tsx`, обновление `meta theme-color`.
+- Цвета статусов — CSS-переменные `--status-sufficient/low/out` (осветляются в `.dark`); `stock-check.tsx` использует `var(--status-*)`.
 
 ## Скрипты
 
