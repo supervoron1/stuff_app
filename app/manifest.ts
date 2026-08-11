@@ -5,6 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Учёт наличия товаров",
     short_name: "Наличие",
     description: "Приложение для учёта наличия товаров по категориям",
+    id: "/",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

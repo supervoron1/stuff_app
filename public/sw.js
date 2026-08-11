@@ -1,17 +1,18 @@
-const CACHE_NAME = "inventory-v1";
+const CACHE_NAME = "inventory-v2.0.0";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
-// Установка: кэшируем остов приложения
+// Установка: кэшируем остов приложения.
+// skipWaiting() НЕ вызываем автоматически — активацию новой версии решает пользователь
+// (кнопка «Обновить» на клиенте отправляет сообщение SKIP_WAITING).
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
   );
 });
 
-// Активация: удаляем старые кэши
+// Активация: удаляем старые кэши и берём управление существующими вкладками.
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -19,6 +20,13 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// Сообщение от клиента: пользователь нажал «Обновить» — активируем новую версию сразу.
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // Стратегия: для навигации — сначала сеть, при ошибке — кэш (app shell).
