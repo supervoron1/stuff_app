@@ -33,12 +33,14 @@ model Product {
   description String?
   photoUrl    String?
   stockStatus StockStatus @default(SUFFICIENT)
+  sortOrder   Int         @default(0)
   updatedAt   DateTime    @updatedAt
   updatedBy   String?
   createdAt   DateTime    @default(now())
   category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@index([categoryId])
+  @@index([categoryId, sortOrder])
   @@index([stockStatus])
   @@map("products")
 }

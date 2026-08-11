@@ -2,6 +2,15 @@ import { db, isOnline } from "./db";
 import type { Category, Product, SyncOperation } from "./types";
 
 /**
+ * Сортировка товаров: ручной порядок (sortOrder), затем имя (tie-breaker).
+ */
+function sortProducts(products: Product[]): Product[] {
+  return products.toSorted(
+    (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
+  );
+}
+
+/**
  * Полный снимок с сервера (pull).
  */
 async function fetchSnapshot() {
@@ -10,7 +19,7 @@ async function fetchSnapshot() {
   const data = await res.json();
   return {
     categories: data.categories as Category[],
-    products: data.products as Product[],
+    products: sortProducts(data.products as Product[]),
   };
 }
 
@@ -49,7 +58,7 @@ export async function pushOutbox(): Promise<{ applied: number; errors: number }>
 
   // Сервер возвращает свежий снимок в том же ответе — обновляем кэш без лишнего GET.
   if (data.snapshot) {
-    await replaceCache(data.snapshot.categories, data.snapshot.products);
+    await replaceCache(data.snapshot.categories, sortProducts(data.snapshot.products));
   }
 
   return { applied: data.applied ?? operations.length, errors: data.errors ?? 0 };
@@ -78,7 +87,7 @@ async function getCachedSnapshot() {
     db.categories.orderBy("sortOrder").toArray(),
     db.products.toArray(),
   ]);
-  return { categories, products };
+  return { categories, products: sortProducts(products) };
 }
 
 /**

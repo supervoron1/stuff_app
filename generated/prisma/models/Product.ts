@@ -20,8 +20,18 @@ export type ProductModel = runtime.Types.Result.DefaultSelection<Prisma.$Product
 
 export type AggregateProduct = {
   _count: ProductCountAggregateOutputType | null
+  _avg: ProductAvgAggregateOutputType | null
+  _sum: ProductSumAggregateOutputType | null
   _min: ProductMinAggregateOutputType | null
   _max: ProductMaxAggregateOutputType | null
+}
+
+export type ProductAvgAggregateOutputType = {
+  sortOrder: number | null
+}
+
+export type ProductSumAggregateOutputType = {
+  sortOrder: number | null
 }
 
 export type ProductMinAggregateOutputType = {
@@ -31,6 +41,7 @@ export type ProductMinAggregateOutputType = {
   description: string | null
   photoUrl: string | null
   stockStatus: $Enums.StockStatus | null
+  sortOrder: number | null
   updatedAt: Date | null
   updatedBy: string | null
   createdAt: Date | null
@@ -43,6 +54,7 @@ export type ProductMaxAggregateOutputType = {
   description: string | null
   photoUrl: string | null
   stockStatus: $Enums.StockStatus | null
+  sortOrder: number | null
   updatedAt: Date | null
   updatedBy: string | null
   createdAt: Date | null
@@ -55,12 +67,21 @@ export type ProductCountAggregateOutputType = {
   description: number
   photoUrl: number
   stockStatus: number
+  sortOrder: number
   updatedAt: number
   updatedBy: number
   createdAt: number
   _all: number
 }
 
+
+export type ProductAvgAggregateInputType = {
+  sortOrder?: true
+}
+
+export type ProductSumAggregateInputType = {
+  sortOrder?: true
+}
 
 export type ProductMinAggregateInputType = {
   id?: true
@@ -69,6 +90,7 @@ export type ProductMinAggregateInputType = {
   description?: true
   photoUrl?: true
   stockStatus?: true
+  sortOrder?: true
   updatedAt?: true
   updatedBy?: true
   createdAt?: true
@@ -81,6 +103,7 @@ export type ProductMaxAggregateInputType = {
   description?: true
   photoUrl?: true
   stockStatus?: true
+  sortOrder?: true
   updatedAt?: true
   updatedBy?: true
   createdAt?: true
@@ -93,6 +116,7 @@ export type ProductCountAggregateInputType = {
   description?: true
   photoUrl?: true
   stockStatus?: true
+  sortOrder?: true
   updatedAt?: true
   updatedBy?: true
   createdAt?: true
@@ -137,6 +161,18 @@ export type ProductAggregateArgs<ExtArgs extends runtime.Types.Extensions.Intern
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: ProductAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: ProductSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: ProductMinAggregateInputType
@@ -167,6 +203,8 @@ export type ProductGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   _count?: ProductCountAggregateInputType | true
+  _avg?: ProductAvgAggregateInputType
+  _sum?: ProductSumAggregateInputType
   _min?: ProductMinAggregateInputType
   _max?: ProductMaxAggregateInputType
 }
@@ -178,10 +216,13 @@ export type ProductGroupByOutputType = {
   description: string | null
   photoUrl: string | null
   stockStatus: $Enums.StockStatus
+  sortOrder: number
   updatedAt: Date
   updatedBy: string | null
   createdAt: Date
   _count: ProductCountAggregateOutputType | null
+  _avg: ProductAvgAggregateOutputType | null
+  _sum: ProductSumAggregateOutputType | null
   _min: ProductMinAggregateOutputType | null
   _max: ProductMaxAggregateOutputType | null
 }
@@ -211,6 +252,7 @@ export type ProductWhereInput = {
   description?: Prisma.StringNullableFilter<"Product"> | string | null
   photoUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   stockStatus?: Prisma.EnumStockStatusFilter<"Product"> | $Enums.StockStatus
+  sortOrder?: Prisma.IntFilter<"Product"> | number
   updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string
   updatedBy?: Prisma.StringNullableFilter<"Product"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string
@@ -224,6 +266,7 @@ export type ProductOrderByWithRelationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   photoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   stockStatus?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   updatedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -240,6 +283,7 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"Product"> | string | null
   photoUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   stockStatus?: Prisma.EnumStockStatusFilter<"Product"> | $Enums.StockStatus
+  sortOrder?: Prisma.IntFilter<"Product"> | number
   updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string
   updatedBy?: Prisma.StringNullableFilter<"Product"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string
@@ -253,12 +297,15 @@ export type ProductOrderByWithAggregationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   photoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   stockStatus?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   updatedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.ProductCountOrderByAggregateInput
+  _avg?: Prisma.ProductAvgOrderByAggregateInput
   _max?: Prisma.ProductMaxOrderByAggregateInput
   _min?: Prisma.ProductMinOrderByAggregateInput
+  _sum?: Prisma.ProductSumOrderByAggregateInput
 }
 
 export type ProductScalarWhereWithAggregatesInput = {
@@ -271,6 +318,7 @@ export type ProductScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   photoUrl?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   stockStatus?: Prisma.EnumStockStatusWithAggregatesFilter<"Product"> | $Enums.StockStatus
+  sortOrder?: Prisma.IntWithAggregatesFilter<"Product"> | number
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Product"> | Date | string
   updatedBy?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Product"> | Date | string
@@ -282,6 +330,7 @@ export type ProductCreateInput = {
   description?: string | null
   photoUrl?: string | null
   stockStatus?: $Enums.StockStatus
+  sortOrder?: number
   updatedAt?: Date | string
   updatedBy?: string | null
   createdAt?: Date | string
@@ -295,6 +344,7 @@ export type ProductUncheckedCreateInput = {
   description?: string | null
   photoUrl?: string | null
   stockStatus?: $Enums.StockStatus
+  sortOrder?: number
   updatedAt?: Date | string
   updatedBy?: string | null
   createdAt?: Date | string
@@ -306,6 +356,7 @@ export type ProductUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   photoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   stockStatus?: Prisma.EnumStockStatusFieldUpdateOperationsInput | $Enums.StockStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -319,6 +370,7 @@ export type ProductUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   photoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   stockStatus?: Prisma.EnumStockStatusFieldUpdateOperationsInput | $Enums.StockStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -331,6 +383,7 @@ export type ProductCreateManyInput = {
   description?: string | null
   photoUrl?: string | null
   stockStatus?: $Enums.StockStatus
+  sortOrder?: number
   updatedAt?: Date | string
   updatedBy?: string | null
   createdAt?: Date | string
@@ -342,6 +395,7 @@ export type ProductUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   photoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   stockStatus?: Prisma.EnumStockStatusFieldUpdateOperationsInput | $Enums.StockStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -354,6 +408,7 @@ export type ProductUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   photoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   stockStatus?: Prisma.EnumStockStatusFieldUpdateOperationsInput | $Enums.StockStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -376,9 +431,14 @@ export type ProductCountOrderByAggregateInput = {
   description?: Prisma.SortOrder
   photoUrl?: Prisma.SortOrder
   stockStatus?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   updatedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+}
+
+export type ProductAvgOrderByAggregateInput = {
+  sortOrder?: Prisma.SortOrder
 }
 
 export type ProductMaxOrderByAggregateInput = {
@@ -388,6 +448,7 @@ export type ProductMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   photoUrl?: Prisma.SortOrder
   stockStatus?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   updatedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -400,9 +461,14 @@ export type ProductMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   photoUrl?: Prisma.SortOrder
   stockStatus?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   updatedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+}
+
+export type ProductSumOrderByAggregateInput = {
+  sortOrder?: Prisma.SortOrder
 }
 
 export type ProductCreateNestedManyWithoutCategoryInput = {
@@ -461,6 +527,7 @@ export type ProductCreateWithoutCategoryInput = {
   description?: string | null
   photoUrl?: string | null
   stockStatus?: $Enums.StockStatus
+  sortOrder?: number
   updatedAt?: Date | string
   updatedBy?: string | null
   createdAt?: Date | string
@@ -472,6 +539,7 @@ export type ProductUncheckedCreateWithoutCategoryInput = {
   description?: string | null
   photoUrl?: string | null
   stockStatus?: $Enums.StockStatus
+  sortOrder?: number
   updatedAt?: Date | string
   updatedBy?: string | null
   createdAt?: Date | string
@@ -513,6 +581,7 @@ export type ProductScalarWhereInput = {
   description?: Prisma.StringNullableFilter<"Product"> | string | null
   photoUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   stockStatus?: Prisma.EnumStockStatusFilter<"Product"> | $Enums.StockStatus
+  sortOrder?: Prisma.IntFilter<"Product"> | number
   updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string
   updatedBy?: Prisma.StringNullableFilter<"Product"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string
@@ -524,6 +593,7 @@ export type ProductCreateManyCategoryInput = {
   description?: string | null
   photoUrl?: string | null
   stockStatus?: $Enums.StockStatus
+  sortOrder?: number
   updatedAt?: Date | string
   updatedBy?: string | null
   createdAt?: Date | string
@@ -535,6 +605,7 @@ export type ProductUpdateWithoutCategoryInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   photoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   stockStatus?: Prisma.EnumStockStatusFieldUpdateOperationsInput | $Enums.StockStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -546,6 +617,7 @@ export type ProductUncheckedUpdateWithoutCategoryInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   photoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   stockStatus?: Prisma.EnumStockStatusFieldUpdateOperationsInput | $Enums.StockStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -557,6 +629,7 @@ export type ProductUncheckedUpdateManyWithoutCategoryInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   photoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   stockStatus?: Prisma.EnumStockStatusFieldUpdateOperationsInput | $Enums.StockStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -571,6 +644,7 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   description?: boolean
   photoUrl?: boolean
   stockStatus?: boolean
+  sortOrder?: boolean
   updatedAt?: boolean
   updatedBy?: boolean
   createdAt?: boolean
@@ -584,6 +658,7 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   description?: boolean
   photoUrl?: boolean
   stockStatus?: boolean
+  sortOrder?: boolean
   updatedAt?: boolean
   updatedBy?: boolean
   createdAt?: boolean
@@ -597,6 +672,7 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   description?: boolean
   photoUrl?: boolean
   stockStatus?: boolean
+  sortOrder?: boolean
   updatedAt?: boolean
   updatedBy?: boolean
   createdAt?: boolean
@@ -610,12 +686,13 @@ export type ProductSelectScalar = {
   description?: boolean
   photoUrl?: boolean
   stockStatus?: boolean
+  sortOrder?: boolean
   updatedAt?: boolean
   updatedBy?: boolean
   createdAt?: boolean
 }
 
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "categoryId" | "name" | "description" | "photoUrl" | "stockStatus" | "updatedAt" | "updatedBy" | "createdAt", ExtArgs["result"]["product"]>
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "categoryId" | "name" | "description" | "photoUrl" | "stockStatus" | "sortOrder" | "updatedAt" | "updatedBy" | "createdAt", ExtArgs["result"]["product"]>
 export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
 }
@@ -638,6 +715,7 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     description: string | null
     photoUrl: string | null
     stockStatus: $Enums.StockStatus
+    sortOrder: number
     updatedAt: Date
     updatedBy: string | null
     createdAt: Date
@@ -1071,6 +1149,7 @@ export interface ProductFieldRefs {
   readonly description: Prisma.FieldRef<"Product", 'String'>
   readonly photoUrl: Prisma.FieldRef<"Product", 'String'>
   readonly stockStatus: Prisma.FieldRef<"Product", 'StockStatus'>
+  readonly sortOrder: Prisma.FieldRef<"Product", 'Int'>
   readonly updatedAt: Prisma.FieldRef<"Product", 'DateTime'>
   readonly updatedBy: Prisma.FieldRef<"Product", 'String'>
   readonly createdAt: Prisma.FieldRef<"Product", 'DateTime'>

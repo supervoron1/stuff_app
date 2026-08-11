@@ -30,6 +30,10 @@ class InventoryDB extends Dexie {
       outbox: "++id, createdAt",
       pendingPhotos: "++id, productId",
     });
+    // v2: индекс sortOrder у товаров — для сортировки по ручному порядку.
+    this.version(2).stores({
+      products: "id, categoryId, sortOrder, stockStatus, updatedAt",
+    });
   }
 }
 

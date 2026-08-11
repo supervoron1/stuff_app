@@ -3,13 +3,14 @@ import type { CategoryWithProducts } from "./types";
 
 /**
  * Полный снимок данных: категории с товарами, отсортированные по sortOrder.
+ * Товары — по ручному порядку (sortOrder), затем по имени (tie-breaker).
  */
 export async function getCategoriesWithProducts(): Promise<CategoryWithProducts[]> {
   const categories = await prisma.category.findMany({
     orderBy: { sortOrder: "asc" },
     include: {
       products: {
-        orderBy: { name: "asc" },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       },
     },
   });

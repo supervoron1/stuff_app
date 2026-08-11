@@ -6,6 +6,7 @@
 
 - **Категории и товары (CRUD)** — создание/редактирование/удаление; название обязательно, описание и фото — опционально
 - **Наличие товара** — 🟢 есть / 🟡 мало / 🔴 нет; тап по цветному индикатору циклично меняет статус
+- **Порядок товаров** — перетаскивание за ручку ⠿ внутри категории; порядок сохраняется и синхронизируется между устройствами
 - **Мобильный UI** — фильтры по статусу (все/есть/мало/нет), поиск по названию, крупные тач-элементы
 - **Мультиустройственность** — единая база данных, синхронизация каждые 10 секунд + ручная кнопка ⟳
 - **Офлайн-режим** — данные кэшируются в IndexedDB, изменения офлайн сохраняются в очередь и отправляются при появлении сети (outbox pattern)
@@ -68,7 +69,7 @@ scripts/
 ## Схема базы данных
 
 - **Category**: `id (uuid)`, `name`, `sortOrder`, `createdAt`, `updatedAt`
-- **Product**: `id (uuid)`, `categoryId → Category`, `name`, `description?`, `photoUrl?`, `stockStatus` (`SUFFICIENT | LOW | OUT`), `updatedAt` (используется для last-write-wins), `updatedBy`, `createdAt`
+- **Product**: `id (uuid)`, `categoryId → Category`, `name`, `description?`, `photoUrl?`, `stockStatus` (`SUFFICIENT | LOW | OUT`), `sortOrder` (ручной порядок в категории), `updatedAt` (используется для last-write-wins), `updatedBy`, `createdAt`
 - **AuditLog**: `id`, `action`, `entity`, `entityId`, `oldValue?`, `newValue?`, `userName`, `createdAt`
 
 ## Локальная настройка

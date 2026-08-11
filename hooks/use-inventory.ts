@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -44,10 +44,14 @@ export function useInventory() {
       db.categories.orderBy("sortOrder").toArray(),
       db.products.toArray(),
     ]);
+    // Ручной порядок (sortOrder), затем — имя (tie-breaker для равных значений).
+    const sortedProducts = products.toSorted(
+      (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
+    );
     setState((s) => ({
       ...s,
       categories,
-      products,
+      products: sortedProducts,
       loading: false,
     }));
     await refreshLocalCount();
@@ -148,6 +152,13 @@ export async function createProductLocal(
   updatedBy: string | null = null
 ) {
   const now = new Date().toISOString();
+  // Новый товар встаёт в конец категории (после максимального sortOrder).
+  const productsInCategory = await db.products.where("categoryId").equals(categoryId).toArray();
+  let maxSort = -1;
+  for (const p of productsInCategory) {
+    if (p.sortOrder > maxSort) maxSort = p.sortOrder;
+  }
+  const sortOrder = maxSort + 1;
   const product: Product = {
     id,
     categoryId,
@@ -155,6 +166,7 @@ export async function createProductLocal(
     description,
     photoUrl,
     stockStatus: "SUFFICIENT",
+    sortOrder,
     updatedAt: now,
     updatedBy,
     createdAt: now,
@@ -163,7 +175,7 @@ export async function createProductLocal(
   await db.outbox.add({
     type: "createProduct" as const,
     id,
-    payload: { categoryId, name, description, photoUrl, updatedBy },
+    payload: { categoryId, name, description, photoUrl, sortOrder, updatedBy },
     createdAt: now,
   });
   return product;
@@ -209,6 +221,30 @@ export async function setStockStatusLocal(
     type: "setStockStatus" as const,
     id,
     payload: { stockStatus, updatedBy },
+    createdAt: now,
+  });
+}
+
+/**
+ * Перестановка товаров внутри категории: проставляет sortOrder 0..N всем
+ * товарам категории (полный список id в новом порядке) и ставит операцию
+ * в очередь для серверной синхронизации.
+ */
+export async function reorderProductsLocal(
+  categoryId: string,
+  orderedIds: string[],
+  updatedBy: string | null = null
+) {
+  const now = new Date().toISOString();
+  await db.transaction("rw", db.products, async () => {
+    for (const [index, productId] of orderedIds.entries()) {
+      await db.products.update(productId, { sortOrder: index, updatedAt: now });
+    }
+  });
+  await db.outbox.add({
+    type: "reorderProducts" as const,
+    id: createId(),
+    payload: { categoryId, orderedIds, updatedBy },
     createdAt: now,
   });
 }

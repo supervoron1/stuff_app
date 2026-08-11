@@ -15,6 +15,7 @@ export interface Product {
   description: string | null;
   photoUrl: string | null;
   stockStatus: StockStatus;
+  sortOrder: number;
   updatedAt: string;
   updatedBy: string | null;
   createdAt: string;
@@ -55,5 +56,15 @@ export type SyncOperation =
       type: "setStockStatus";
       id: string;
       payload: Record<string, unknown>;
+      createdAt: string;
+    }
+  | {
+      type: "reorderProducts";
+      id: string;
+      payload: {
+        categoryId: string;
+        orderedIds: string[];
+        updatedBy: string | null;
+      };
       createdAt: string;
     };

@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
-import { useInventory, setStockStatusLocal, createCategoryLocal, updateCategoryLocal, deleteCategoryLocal, createProductLocal, updateProductLocal, deleteProductLocal } from "@/hooks/use-inventory";
+import { useInventory, setStockStatusLocal, createCategoryLocal, updateCategoryLocal, deleteCategoryLocal, createProductLocal, updateProductLocal, deleteProductLocal, reorderProductsLocal } from "@/hooks/use-inventory";
 import { useUser } from "@/hooks/use-user";
 import { StockCheck } from "./stock-check";
 import { Modal } from "./modal";
@@ -13,6 +16,39 @@ import { syncNow } from "@/lib/sync";
 import type { Category, Product, StockStatus } from "@/lib/types";
 
 type Filter = "ALL" | StockStatus;
+
+// Ряд товара с перетаскиванием за ручку ⠿ (dnd-kit).
+function ProductRow({ product, disabled, onEdit, onDelete, onCycle }: { product: Product; disabled: boolean; onEdit: VoidFunction; onDelete: VoidFunction; onCycle: VoidFunction; }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id, disabled });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center justify-between gap-2 py-2 ${isDragging ? "relative z-10 opacity-80" : ""}`}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        {!disabled && (
+          <button type="button" {...attributes} {...listeners} aria-label={`Переместить «${product.name}»`} className="shrink-0 cursor-grab touch-none rounded-lg px-1.5 py-2 text-gray-400 active:cursor-grabbing">
+            ⠿
+          </button>
+        )}
+        {product.photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={product.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+        )}
+        <div className="min-w-0">
+          <p className="truncate font-medium text-gray-900">{product.name}</p>
+          {product.description && <p className="truncate text-xs text-gray-500">{product.description}</p>}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <StockCheck status={product.stockStatus} interactive onCycle={onCycle} />
+        <button onClick={onEdit} className="rounded-lg px-2 py-1 text-gray-400 hover:bg-gray-100">✎</button>
+        <button onClick={onDelete} className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-50">✕</button>
+      </div>
+    </li>
+  );
+}
 
 export function InventoryApp() {
   const { categories, products, loading, online, pendingOps, refresh, refreshLocal } = useInventory();
@@ -149,6 +185,26 @@ export function InventoryApp() {
     }
   }
 
+  const reorderDisabled = filter !== "ALL" || search.trim() !== "";
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const activeProduct = products.find((p) => p.id === active.id);
+    const overProduct = products.find((p) => p.id === over.id);
+    if (!activeProduct || !overProduct || activeProduct.categoryId !== overProduct.categoryId) return;
+    const categoryId = activeProduct.categoryId;
+    const current = productsByCategory.get(categoryId);
+    if (!current) return;
+    const fromIndex = current.findIndex((p) => p.id === active.id);
+    const toIndex = current.findIndex((p) => p.id === over.id);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const reordered = arrayMove(current, fromIndex, toIndex);
+    reorderProductsLocal(categoryId, reordered.map((p) => p.id), userName || null).then(() => refreshLocal());
+    if (online) {
+      refresh().catch(() => {});
+    }
+  }
   if (loading) {
     return <div className="flex items-center justify-center py-24 text-gray-500">Загрузка...</div>;
   }
@@ -246,7 +302,8 @@ export function InventoryApp() {
         </div>
       )}
 
-      {visibleCategories.map((cat) => {
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        {visibleCategories.map((cat) => {
         const items = productsByCategory.get(cat.id) ?? [];
         const expanded = isCategoryExpanded(cat.id);
         return (
@@ -304,43 +361,28 @@ export function InventoryApp() {
                 {items.length === 0 ? (
                   <p className="py-2 text-sm text-gray-400">Нет товаров</p>
                 ) : (
-                  <ul className="divide-y divide-gray-100">
+                  <SortableContext items={items.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                    <ul className="divide-y divide-gray-100">
                     {items.map((p) => (
-                      <li key={p.id} className="flex items-center justify-between gap-2 py-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {p.photoUrl && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
-                          )}
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-gray-900">{p.name}</p>
-                            {p.description && <p className="truncate text-xs text-gray-500">{p.description}</p>}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <StockCheck status={p.stockStatus} interactive onCycle={() => cycleStatus(p)} />
-                          <button
-                            onClick={() => setProductModal({ open: true, categoryId: p.categoryId, editing: p })}
-                            className="rounded-lg px-2 py-1 text-gray-400 hover:bg-gray-100"
-                          >
-                            ✎
-                          </button>
-                          <button
-                            onClick={() => setDeleteModal({ category: null, product: p })}
-                            className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-50"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </li>
+                        <ProductRow
+                          key={p.id}
+                          product={p}
+                          disabled={reorderDisabled || items.length < 2}
+                          onEdit={() => setProductModal({ open: true, categoryId: p.categoryId, editing: p })}
+                          onDelete={() => setDeleteModal({ category: null, product: p })}
+                          onCycle={() => cycleStatus(p)}
+                        />
                     ))}
-                  </ul>
+                    </ul>
+                  </SortableContext>
                 )}
               </div>
             </div>
           </div>
         );
       })}
+
+      </DndContext>
 
       {/* Плавающая кнопка добавления категории */}
       {categories.length > 0 && (
