@@ -1,7 +1,14 @@
 "use client";
 
-import { STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS } from "@/lib/constants";
 import type { StockStatus } from "@/lib/types";
+
+// Цвета статусов через CSS-переменные — автоматически адаптируются к теме (см. globals.css).
+const STATUS_VAR: Record<StockStatus, string> = {
+  SUFFICIENT: "var(--status-sufficient)",
+  LOW: "var(--status-low)",
+  OUT: "var(--status-out)",
+};
 
 interface Props {
   status: StockStatus;
@@ -15,7 +22,7 @@ interface Props {
  */
 export function StockCheck({ status, interactive = false, onCycle }: Props) {
   const label = STATUS_LABELS[status];
-  const color = STATUS_COLORS[status];
+  const color = STATUS_VAR[status];
 
   const checkIcon = (
     <svg
@@ -46,7 +53,7 @@ export function StockCheck({ status, interactive = false, onCycle }: Props) {
       type="button"
       onClick={onCycle}
       aria-label={`Наличие: ${label}. Нажмите, чтобы изменить`}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform hover:bg-gray-100 active:scale-95"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95"
     >
       {checkIcon}
     </button>

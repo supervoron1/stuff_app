@@ -1,8 +1,26 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: тёмная тема включается классом .dark на <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Цвета статусов наличия (светлая тема) */
+  --status-sufficient: #22c55e;
+  --status-low: #eab308;
+  --status-out: #ef4444;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  /* Осветлённые цвета статусов для тёмной темы */
+  --status-sufficient: #4ade80;
+  --status-low: #facc15;
+  --status-out: #f87171;
 }
 
 @theme inline {
@@ -10,13 +28,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

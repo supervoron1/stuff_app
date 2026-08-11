@@ -22,22 +22,22 @@ export const STATUS_STYLES: Record<
   { bg: string; text: string; border: string; dot: string }
 > = {
   SUFFICIENT: {
-    bg: "bg-green-500",
-    text: "text-green-700",
-    border: "border-green-500",
-    dot: "bg-green-500",
+    bg: "bg-green-500 dark:bg-green-400",
+    text: "text-green-700 dark:text-green-400",
+    border: "border-green-500 dark:border-green-400",
+    dot: "bg-green-500 dark:bg-green-400",
   },
   LOW: {
-    bg: "bg-yellow-500",
-    text: "text-yellow-700",
-    border: "border-yellow-500",
-    dot: "bg-yellow-500",
+    bg: "bg-yellow-500 dark:bg-yellow-400",
+    text: "text-yellow-700 dark:text-yellow-400",
+    border: "border-yellow-500 dark:border-yellow-400",
+    dot: "bg-yellow-500 dark:bg-yellow-400",
   },
   OUT: {
-    bg: "bg-red-500",
-    text: "text-red-700",
-    border: "border-red-500",
-    dot: "bg-red-500",
+    bg: "bg-red-500 dark:bg-red-400",
+    text: "text-red-700 dark:text-red-400",
+    border: "border-red-500 dark:border-red-400",
+    dot: "bg-red-500 dark:bg-red-400",
   },
 };
 

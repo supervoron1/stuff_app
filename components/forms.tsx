@@ -45,12 +45,12 @@ export function CategoryForm({ open, onClose, initial, onSubmit, defaultSortOrde
     <Modal open={open} title={initial ? "Редактировать категорию" : "Новая категория"} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Название</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Название</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
             placeholder="Например: Электроника"
             autoFocus
           />
@@ -60,14 +60,14 @@ export function CategoryForm({ open, onClose, initial, onSubmit, defaultSortOrde
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-300 py-2.5 font-medium text-gray-700"
+            className="flex-1 rounded-xl border border-gray-300 dark:border-gray-600 py-2.5 font-medium text-gray-700 dark:text-gray-300"
           >
             Отмена
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-xl bg-green-600 py-2.5 font-medium text-white disabled:opacity-50"
+            className="flex-1 rounded-xl bg-green-600 dark:bg-green-500 py-2.5 font-medium text-white disabled:opacity-50"
           >
             {saving ? "Сохранение..." : "Сохранить"}
           </button>
@@ -171,29 +171,29 @@ export function ProductForm({ open, onClose, categoryId, existingPhotoUrl, initi
     <Modal open={open} title={initial ? "Редактировать товар" : "Новый товар"} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Название *</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Название *</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
             placeholder="Название товара"
             autoFocus
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Описание</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Описание</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
+            className="w-full resize-none rounded-xl border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-base outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
             placeholder="Необязательно"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Фото</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Фото</label>
           {preview && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -213,7 +213,7 @@ export function ProductForm({ open, onClose, categoryId, existingPhotoUrl, initi
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading || !navigator.onLine}
-            className="w-full rounded-xl border border-dashed border-gray-300 py-2.5 text-sm text-gray-600 disabled:opacity-50"
+            className="w-full rounded-xl border border-dashed border-gray-300 dark:border-gray-600 py-2.5 text-sm text-gray-600 dark:text-gray-400 disabled:opacity-50"
           >
             {uploading ? "Загрузка..." : preview ? "Заменить фото" : "Добавить фото"}
           </button>
@@ -234,14 +234,14 @@ export function ProductForm({ open, onClose, categoryId, existingPhotoUrl, initi
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-300 py-2.5 font-medium text-gray-700"
+            className="flex-1 rounded-xl border border-gray-300 dark:border-gray-600 py-2.5 font-medium text-gray-700 dark:text-gray-300"
           >
             Отмена
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-xl bg-green-600 py-2.5 font-medium text-white disabled:opacity-50"
+            className="flex-1 rounded-xl bg-green-600 dark:bg-green-500 py-2.5 font-medium text-white disabled:opacity-50"
           >
             {saving ? "Сохранение..." : "Сохранить"}
           </button>

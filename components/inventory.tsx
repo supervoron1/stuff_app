@@ -7,6 +7,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import { useInventory, setStockStatusLocal, createCategoryLocal, updateCategoryLocal, deleteCategoryLocal, createProductLocal, updateProductLocal, deleteProductLocal, reorderProductsLocal } from "@/hooks/use-inventory";
 import { useUser } from "@/hooks/use-user";
+import { useTheme } from "@/hooks/use-theme";
 import { StockCheck } from "./stock-check";
 import { Modal } from "./modal";
 import { CategoryForm, ProductForm } from "./forms";
@@ -33,20 +34,20 @@ function ProductRow({ product, disabled, onEdit, onDelete, onCycle }: { product:
         aria-label={disabled ? undefined : `Переместить «${product.name}»`}
         className={`flex min-w-0 flex-1 cursor-grab items-center gap-2 active:cursor-grabbing ${disabled ? "" : "touch-manipulation"}`}
       >
-        {!disabled && <span className="shrink-0 text-gray-400">⠿</span>}
+        {!disabled && <span className="shrink-0 text-gray-400 dark:text-gray-500">⠿</span>}
         {product.photoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
         )}
         <div className="min-w-0">
-          <p className="truncate font-medium text-gray-900">{product.name}</p>
-          {product.description && <p className="truncate text-xs text-gray-500">{product.description}</p>}
+          <p className="truncate font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
+          {product.description && <p className="truncate text-xs text-gray-500 dark:text-gray-400">{product.description}</p>}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <StockCheck status={product.stockStatus} interactive onCycle={onCycle} />
-        <button onClick={onEdit} className="rounded-lg px-2 py-1 text-gray-400 hover:bg-gray-100">✎</button>
-        <button onClick={onDelete} className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-50">✕</button>
+        <button onClick={onEdit} className="rounded-lg px-2 py-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✎</button>
+        <button onClick={onDelete} className="rounded-lg px-2 py-1 text-red-400 hover:bg-red-50 dark:hover:bg-red-950">✕</button>
       </div>
     </li>
   );
@@ -55,6 +56,7 @@ function ProductRow({ product, disabled, onEdit, onDelete, onCycle }: { product:
 export function InventoryApp() {
   const { categories, products, loading, online, pendingOps, refresh, refreshLocal, optimisticReorder, optimisticSetStatus } = useInventory();
   const { userName, setUserName } = useUser();
+  const { theme, toggleTheme, themeIcon, themeTitle } = useTheme();
 
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
@@ -257,7 +259,7 @@ export function InventoryApp() {
     scheduleSync();
   }
   if (loading) {
-    return <div className="flex items-center justify-center py-24 text-gray-500">Загрузка...</div>;
+    return <div className="flex items-center justify-center py-24 text-gray-500 dark:text-gray-400">Загрузка...</div>;
   }
 
   return (
@@ -265,8 +267,8 @@ export function InventoryApp() {
       {/* Шапка */}
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Наличие товаров</h1>
-          <p className="text-xs text-gray-500">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Наличие товаров</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {online ? "● в сети" : "○ офлайн"}
             {pendingOps > 0 && ` · ожидает: ${pendingOps}`}
           </p>
@@ -274,21 +276,30 @@ export function InventoryApp() {
         <div className="flex gap-2">
           <button
             onClick={() => setHistoryOpen(true)}
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 active:scale-95"
+            className="rounded-xl border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 active:scale-95"
             title="История"
           >
             🕘
           </button>
           <button
             onClick={handleSync}
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 active:scale-95"
+            className="rounded-xl border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 active:scale-95"
             title="Синхронизировать"
           >
             ⟳
           </button>
           <button
+            onClick={toggleTheme}
+            suppressHydrationWarning
+            className="rounded-xl border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 active:scale-95"
+            title={themeTitle}
+            aria-label="Переключить тему"
+          >
+            {themeIcon}
+          </button>
+          <button
             onClick={() => { setUserInput(userName); setUserModal(true); }}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-green-600 dark:bg-green-500 text-sm font-bold text-white"
             title="Сменить пользователя"
           >
             {userName ? userName[0].toUpperCase() : "?"}
@@ -296,7 +307,7 @@ export function InventoryApp() {
         </div>
       </div>
 
-      {msg && <div className="mb-3 rounded-xl bg-green-50 px-3 py-2 text-center text-sm text-green-700">{msg}</div>}
+      {msg && <div className="mb-3 rounded-xl bg-green-50 dark:bg-green-950 px-3 py-2 text-center text-sm text-green-700 dark:text-green-400">{msg}</div>}
 
       {/* Поиск и фильтры */}
       <input
@@ -304,7 +315,7 @@ export function InventoryApp() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Поиск товаров..."
-        className="mb-3 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-green-500"
+        className="mb-3 w-full rounded-xl border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-base outline-none focus:border-green-500"
       />
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
@@ -312,7 +323,7 @@ export function InventoryApp() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${filter === f ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-700"}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${filter === f ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
           >
             {f === "ALL" ? `Все (${counts.total})` : `${STATUS_LABELS[f]} (${counts[f]})`}
           </button>
@@ -326,7 +337,7 @@ export function InventoryApp() {
             type="button"
             onClick={toggleAll}
             disabled={forceExpand}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {allCollapsed ? "Развернуть все" : "Свернуть все"}
           </button>
@@ -335,11 +346,11 @@ export function InventoryApp() {
 
       {/* Категории с товарами */}
       {categories.length === 0 && (
-        <div className="py-10 text-center text-gray-500">
+        <div className="py-10 text-center text-gray-500 dark:text-gray-400">
           <p className="mb-4">Категорий пока нет</p>
           <button
             onClick={() => setCategoryModal({ open: true, editing: null })}
-            className="rounded-xl bg-green-600 px-5 py-2.5 font-medium text-white"
+            className="rounded-xl bg-green-600 dark:bg-green-500 px-5 py-2.5 font-medium text-white"
           >
             + Создать категорию
           </button>
@@ -348,7 +359,7 @@ export function InventoryApp() {
 
       {/* Глобальное пустое состояние при активном фильтре статуса или поиске */}
       {(filter !== "ALL" || search.trim() !== "") && categories.length > 0 && visibleCategories.length === 0 && (
-        <div className="py-10 text-center text-gray-500">
+        <div className="py-10 text-center text-gray-500 dark:text-gray-400">
           <p>{search.trim() !== "" ? `Ничего не найдено по запросу «${search.trim()}»` : "Нет товаров с таким статусом"}</p>
         </div>
       )}
@@ -358,7 +369,7 @@ export function InventoryApp() {
         const items = productsByCategory.get(cat.id) ?? [];
         const expanded = isCategoryExpanded(cat.id);
         return (
-          <div key={cat.id} className="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+          <div key={cat.id} className="mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-sm">
             <div className="mb-2 flex items-center justify-between gap-2">
               <button
                 type="button"
@@ -366,22 +377,22 @@ export function InventoryApp() {
                 aria-expanded={expanded}
                 className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
               >
-                <span className="shrink-0 text-sm text-gray-400">{expanded ? "▾" : "▸"}</span>
-                <span className="truncate font-semibold text-gray-900">{cat.name}</span>
+                <span className="shrink-0 text-sm text-gray-400 dark:text-gray-500">{expanded ? "▾" : "▸"}</span>
+                <span className="truncate font-semibold text-gray-900 dark:text-gray-100">{cat.name}</span>
                 {items.length > 0 && (
-                  <span className="shrink-0 text-xs font-normal text-gray-400">{items.length}</span>
+                  <span className="shrink-0 text-xs font-normal text-gray-400 dark:text-gray-500">{items.length}</span>
                 )}
               </button>
               <div className="flex shrink-0 gap-1">
                 <button
                   onClick={() => setCategoryModal({ open: true, editing: cat })}
-                  className="rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100"
+                  className="rounded-lg px-2 py-1 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   ✎
                 </button>
                 <button
                   onClick={() => setDeleteModal({ category: cat, product: null })}
-                  className="rounded-lg px-2 py-1 text-sm text-red-500 hover:bg-red-50"
+                  className="rounded-lg px-2 py-1 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
                 >
                   ✕
                 </button>
@@ -410,10 +421,10 @@ export function InventoryApp() {
             >
               <div className="min-h-0 overflow-hidden">
                 {items.length === 0 ? (
-                  <p className="py-2 text-sm text-gray-400">Нет товаров</p>
+                  <p className="py-2 text-sm text-gray-400 dark:text-gray-500">Нет товаров</p>
                 ) : (
                   <SortableContext items={items.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                    <ul className="divide-y divide-gray-100">
+                    <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                     {items.map((p) => (
                         <ProductRow
                           key={p.id}
@@ -439,7 +450,7 @@ export function InventoryApp() {
       {categories.length > 0 && (
         <button
           onClick={() => setCategoryModal({ open: true, editing: null })}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-green-600 px-6 py-3 font-semibold text-white shadow-lg active:scale-95"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-green-600 dark:bg-green-500 px-6 py-3 font-semibold text-white shadow-lg active:scale-95"
         >
           + Категория
         </button>
@@ -465,11 +476,11 @@ export function InventoryApp() {
       )}
 
       <Modal open={!!deleteModal.category || !!deleteModal.product} title="Подтверждение" onClose={() => setDeleteModal({ category: null, product: null })}>
-        <p className="mb-4 text-gray-700">
+        <p className="mb-4 text-gray-700 dark:text-gray-300">
           Удалить {deleteModal.category ? `категорию «${deleteModal.category.name}» со всеми товарами` : deleteModal.product ? `товар «${deleteModal.product.name}»` : ""}?
         </p>
         <div className="flex gap-3">
-          <button onClick={() => setDeleteModal({ category: null, product: null })} className="flex-1 rounded-xl border border-gray-300 py-2.5 font-medium text-gray-700">
+          <button onClick={() => setDeleteModal({ category: null, product: null })} className="flex-1 rounded-xl border border-gray-300 dark:border-gray-600 py-2.5 font-medium text-gray-700 dark:text-gray-300">
             Отмена
           </button>
           <button onClick={handleDelete} className="flex-1 rounded-xl bg-red-600 py-2.5 font-medium text-white">
@@ -482,18 +493,18 @@ export function InventoryApp() {
 
       <Modal open={userModal} title="Ваше имя" onClose={() => setUserModal(false)}>
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">Имя будет записываться в историю изменений.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Имя будет записываться в историю изменений.</p>
           <input
             type="text"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             placeholder="Например: Иван"
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-green-500"
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-base outline-none focus:border-green-500"
             autoFocus
           />
           <button
             onClick={() => { setUserName(userInput); setUserModal(false); }}
-            className="w-full rounded-xl bg-green-600 py-2.5 font-medium text-white"
+            className="w-full rounded-xl bg-green-600 dark:bg-green-500 py-2.5 font-medium text-white"
           >
             Сохранить
           </button>

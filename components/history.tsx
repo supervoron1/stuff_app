@@ -52,18 +52,18 @@ export function History({ open, onClose }: HistoryProps) {
   return (
     <Modal open={open} title="История изменений" onClose={onClose}>
       {loading ? (
-        <p className="py-6 text-center text-gray-500">Загрузка...</p>
+        <p className="py-6 text-center text-gray-500 dark:text-gray-400">Загрузка...</p>
       ) : logs.length === 0 ? (
-        <p className="py-6 text-center text-gray-500">Пока нет записей</p>
+        <p className="py-6 text-center text-gray-500 dark:text-gray-400">Пока нет записей</p>
       ) : (
-        <ul className="max-h-[60vh] divide-y divide-gray-100 overflow-y-auto">
+        <ul className="max-h-[60vh] divide-y divide-gray-100 dark:divide-gray-700 overflow-y-auto">
           {logs.map((log) => (
             <li key={log.id} className="py-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-gray-900">{log.userName}</span>
-                <span className="shrink-0 text-xs text-gray-400">{formatTime(log.createdAt)}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{log.userName}</span>
+                <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">{formatTime(log.createdAt)}</span>
               </div>
-              <p className="mt-0.5 text-sm text-gray-600">
+              <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
                 {ACTION_LABELS[log.action] ?? log.action}{" "}
                 {ENTITY_LABELS[log.entity] ?? log.entity.toLowerCase()}
                 {log.newValue ? `: ${log.newValue}` : ""}

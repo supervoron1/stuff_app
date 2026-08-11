@@ -91,15 +91,15 @@ export function PwaRegister() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3">
-      <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-lg">
-        <p className="text-sm text-gray-700">Доступна новая версия</p>
+      <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-lg">
+        <p className="text-sm text-gray-700 dark:text-gray-300">Доступна новая версия</p>
         <div className="flex shrink-0 items-center gap-2">
-          <button onClick={dismiss} className="rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100">
+          <button onClick={dismiss} className="rounded-lg px-2 py-1 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
             Позже
           </button>
           <button
             onClick={applyUpdate}
-            className="rounded-xl bg-green-600 px-3 py-1.5 text-sm font-medium text-white active:scale-95"
+            className="rounded-xl bg-green-600 dark:bg-green-500 px-3 py-1.5 text-sm font-medium text-white active:scale-95"
           >
             Обновить
           </button>

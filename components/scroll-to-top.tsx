@@ -35,7 +35,7 @@ export function ScrollToTop() {
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Прокрутить наверх"
-      className="fixed bottom-6 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl text-gray-600 shadow-lg ring-1 ring-gray-200 transition-transform active:scale-95"
+      className="fixed bottom-6 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-gray-900 text-xl text-gray-600 dark:text-gray-400 shadow-lg ring-1 ring-gray-200 dark:ring-gray-700 transition-transform active:scale-95"
     >
       ↑
     </button>

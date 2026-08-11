@@ -126,3 +126,12 @@
 - `components/pwa-register.tsx`: регистрация с `updateViaCache: "none"`; периодическая проверка `registration.update()` каждые 60 сек + на `focus`/`visibilitychange`; при появлении новой версии (`updatefound` → `installed` + есть контролирующий SW) показывается баннер «Доступна новая версия» с кнопками «Обновить»/«Позже»; по «Обновить» — `postMessage({type: "SKIP_WAITING"})`, по `controllerchange` — `location.reload()`.
 - `app/manifest.ts`: добавлен стабильный `id` (важно для распознавания PWA). Поле `version` не добавлено — тип `MetadataRoute.Manifest` в Next 16 его не поддерживает; версия приложения выражается версией кэша в `sw.js`.
 **Ограничения:** обновление происходит только при открытом приложении (как у всех PWA); на iOS Safari `registration.update()` в standalone-PWA может игнорироваться — там надёжная проверка при запуске/навигации.
+
+## D20. Тёмная и светлая тема
+**Решение:** class-based dark mode в Tailwind 4 (`@custom-variant dark`) + хук `useTheme` (light/dark/system), выбор хранится в localStorage (локально на устройстве).
+**Детали:**
+- По умолчанию — светлая до первого ручного переключения; переключатель в шапке (☀️ → 🌙 → 🖥 система) рядом с «Историей» и «Обновить».
+- Анти-flash: инлайн-скрипт в `<head>` (`layout.tsx`) ставит класс `dark` до первого рендера, если сохранено dark или system+тёмная система.
+- `globals.css`: `@custom-variant dark`; цвета статусов через CSS-переменные (`--status-sufficient/low/out`) с осветлением в `.dark`; `stock-check.tsx` использует `var(--status-*)`.
+- Акцентные кнопки в тёмной теме — `dark:bg-green-500` (вместо green-600); фильтры — инвертированные пилюли (активный `dark:bg-white dark:text-gray-900`).
+- PWA: `meta theme-color` обновляется динамически (`#ffffff`/`#0a0a0a`); манифест статичен (ограничение установленного PWA).
