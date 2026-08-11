@@ -96,9 +96,11 @@ export function InventoryApp() {
   // Категории для показа с учётом выбранного фильтра:
   // при конкретном статусе — только те, где есть хотя бы один товар с этим статусом.
   const visibleCategories = useMemo(() => {
-    if (filter === "ALL") return categories;
+    // «Все» и без поиска — показываем все категории (включая пустые, чтобы можно было добавить первый товар).
+    if (filter === "ALL" && search.trim() === "") return categories;
+    // Фильтр по статусу и/или поиск — только категории, где есть подходящие товары.
     return categories.filter((cat) => (productsByCategory.get(cat.id)?.length ?? 0) > 0);
-  }, [categories, filter, productsByCategory]);
+  }, [categories, filter, search, productsByCategory]);
 
   // При активном фильтре статуса или непустом поиске категории принудительно
   // развёрнуты, чтобы отфильтрованные товары были сразу видны.
@@ -344,10 +346,10 @@ export function InventoryApp() {
         </div>
       )}
 
-      {/* Глобальное пустое состояние при активном фильтре статуса */}
-      {filter !== "ALL" && categories.length > 0 && visibleCategories.length === 0 && (
+      {/* Глобальное пустое состояние при активном фильтре статуса или поиске */}
+      {(filter !== "ALL" || search.trim() !== "") && categories.length > 0 && visibleCategories.length === 0 && (
         <div className="py-10 text-center text-gray-500">
-          <p>Нет товаров с таким статусом</p>
+          <p>{search.trim() !== "" ? `Ничего не найдено по запросу «${search.trim()}»` : "Нет товаров с таким статусом"}</p>
         </div>
       )}
 
