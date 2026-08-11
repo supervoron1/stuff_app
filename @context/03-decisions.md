@@ -144,3 +144,12 @@
 - Версия кэша SW поднята (`inventory-v2.2.0`) — на устройствах сработает механизм обновления PWA (D19).
 - Добавлен `<link rel="apple-touch-icon">` в `layout.tsx` для корректной иконки на iOS Safari.
 - `purpose: "maskable"` НЕ добавлялся: анализ пикселей показал, что контент доходит до краёв (активность краевой зоны ~97%) — маска Android обрезала бы иконку.
+
+## D22. Исправление hydration mismatch
+**Проблема:** в консоли ошибка «A tree hydrated but some attributes of the server rendered HTML didn't match the client properties» + значок Next — 1 Issue.
+**Причины:**
+1. Анти-flash скрипт тёмной темы добавляет класс `dark` на `<html>` до гидратации React — у серверного HTML и клиента расходятся атрибуты `class`.
+2. `useInventory` инициализировал `online` от `navigator.onLine` на клиенте, а на сервере — `true`: при несовпадении состояния сети расходился текст «в сети/офлайн».
+**Решение:**
+- `suppressHydrationWarning` на `<html>` в `app/layout.tsx` (стандартный паттерн для class-based theme).
+- `use-inventory.ts`: `online` инициализируется `true` (hydration-safe), реальное `navigator.onLine` уточняется в `useEffect` сразу после гидратации.

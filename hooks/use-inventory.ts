@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -27,7 +27,7 @@ export function useInventory() {
     categories: [],
     products: [],
     loading: true,
-    online: typeof navigator === "undefined" ? true : navigator.onLine,
+    online: true, // hydration-safe: на сервере и при первом клиентском рендере одинаково; уточняем в эффекте
     pendingOps: 0,
     lastSynced: null,
   });
@@ -120,6 +120,8 @@ export function useInventory() {
   }, []);
 
   useEffect(() => {
+    // Уточняем реальное состояние сети после гидратации (navigator.onLine).
+    setState((s) => ({ ...s, online: navigator.onLine }));
     loadFromLocal();
     doSync();
 
