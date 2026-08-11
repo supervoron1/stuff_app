@@ -153,3 +153,8 @@
 **Решение:**
 - `suppressHydrationWarning` на `<html>` в `app/layout.tsx` (стандартный паттерн для class-based theme).
 - `use-inventory.ts`: `online` инициализируется `true` (hydration-safe), реальное `navigator.onLine` уточняется в `useEffect` сразу после гидратации.
+
+## D23. Favicon вкладки + query-версия иконок
+**Решение:**
+- Сгенерирован `app/favicon.ico` из новой иконки (ICO с встроенным PNG 192×192) — favicon во вкладке браузера теперь совпадает с иконкой PWA.
+- К путям иконок в `app/manifest.ts` и `apple-touch-icon` в `app/layout.tsx` добавлен `?v=2` — чтобы браузер/Chrome быстрее пересчитывали иконки при будущих обновлениях (не гарантирует, но безвредно).

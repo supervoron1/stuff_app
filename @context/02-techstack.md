@@ -108,3 +108,58 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 - `npm run dev` / `build` / `start` / `lint`
 - `npx prisma migrate dev --name <имя>` — миграции
 - `npx prisma studio` — просмотр БД
+
+## Релиз: версионирование иконок и Service Worker (важно!)
+
+### 1. Иконки приложения (`icon-192.png` / `icon-512.png`)
+
+Менять **только** когда поставляются новые файлы иконок (новый дизайн).
+
+Что сделать:
+- Заменить `public/icons/icon-192.png` и `public/icons/icon-512.png` новыми PNG (размеры должны совпадать: 192×192 и 512×512).
+- Если нужна иконка вкладки — пересоздать `app/favicon.ico` из новой иконки (команда ниже).
+- **Увеличить `?v=N` на 1** в трёх местах:
+  - `app/manifest.ts`: `src: "/icons/icon-192.png?v=N"` и `src: "/icons/icon-512.png?v=N"`;
+  - `app/layout.tsx`: `apple-touch-icon href="/icons/icon-192.png?v=N"`.
+- Пересобрать и задеплоить.
+
+### 2. Версия кэша Service Worker (`CACHE_NAME`)
+
+Менять **при каждом релизе, который должен обновить офлайн-кэш**: любое изменение клиентского кода (UI, логика, иконки, sw.js).
+
+Что сделать:
+- В `public/sw.js` поднять `const CACHE_NAME = "inventory-vX.Y.Z"` (например, `inventory-v2.2.0` → `inventory-v2.2.1`).
+- Новый SW считается браузером «другой версией» → устанавливается, при активации удаляет старый кэш и кэширует свежие ресурсы.
+- Правило: **изменился любой файл, который попадает в кэш (или сам sw.js) — версию поднимаем.**
+
+### 3. Почему нельзя просто заменить файлы
+
+- Браузер кэширует иконки по URL (HTTP-кэш + кэш SW). Без смены URL (через `?v=`) и без нового SW он может долго отдавать старые байты.
+- Иконка установленного PWA на главном экране — **системная**, не обновляется ни SW, ни `?v=`. Надёжно — только **переустановка PWA** (удалить и добавить заново). Данные при этом не теряются: после установки приложение сделает pull с сервера.
+
+### 4. Как проверить, что изменения подхватились
+
+- **Сайт (вкладка браузера):** Ctrl+F5; DevTools → Application → Manifest — новые URL иконок; favicon — новая картинка.
+- **PWA:** появится баннер «Доступна новая версия» (механизм D19) → «Обновить» → перезагрузка с новым кэшем. Иконка на главном экране — только переустановкой.
+- После деплоя: `curl -sI https://домен/icons/icon-192.png?v=N` → 200; `curl -s https://домен/sw.js` → новый `CACHE_NAME`.
+
+### 5. Генерация `app/favicon.ico` из PNG (Node, без зависимостей)
+
+```js
+const fs = require("fs");
+const png = fs.readFileSync("public/icons/icon-192.png");
+const size = 192;
+const header = Buffer.alloc(6); header.writeUInt16LE(0, 0); header.writeUInt16LE(1, 2); header.writeUInt16LE(1, 4);
+const entry = Buffer.alloc(16);
+entry.writeUInt8(size, 0); entry.writeUInt8(size, 1); entry.writeUInt8(0, 2); entry.writeUInt8(0, 3);
+entry.writeUInt16LE(1, 4); entry.writeUInt16LE(32, 6);
+entry.writeUInt32LE(png.length, 8); entry.writeUInt32LE(22, 12);
+fs.writeFileSync("app/favicon.ico", Buffer.concat([header, entry, png]));
+```
+
+### 6. Сводная таблица
+
+| Сценарий | `CACHE_NAME` | `?v=` у иконок | favicon |
+|---|---|---|---|
+| Релиз кода/фич (иконки не менялись) | **поднять** | не трогать | не трогать |
+| Новые иконки | **поднять** | **увеличить** | пересоздать |
