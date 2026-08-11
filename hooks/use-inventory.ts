@@ -33,6 +33,7 @@ export function useInventory() {
   });
 
   const syncingRef = useRef(false);
+  const pendingSyncRef = useRef(false);
 
   const refreshLocalCount = useCallback(async () => {
     const count = await db.outbox.count();
@@ -57,17 +58,48 @@ export function useInventory() {
     await refreshLocalCount();
   }, [refreshLocalCount]);
 
+  const optimisticReorder = useCallback((categoryId: string, orderedIds: string[]) => {
+    const rank = new Map<string, number>();
+    orderedIds.forEach((id, index) => rank.set(id, index));
+    setState((s) => {
+      const products = s.products
+        .map((p) =>
+          p.categoryId === categoryId && rank.has(p.id)
+            ? { ...p, sortOrder: rank.get(p.id)! }
+            : p
+        )
+        .toSorted((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+      return { ...s, products };
+    });
+  }, []);
+
   const doSync = useCallback(async () => {
-    if (syncingRef.current) return;
+    // Если синхронизация уже идёт — запоминаем запрос и выполним ещё один проход после.
+    if (syncingRef.current) {
+      pendingSyncRef.current = true;
+      return;
+    }
     syncingRef.current = true;
     try {
-      await syncNow();
+      // Повторяем, если во время синхронизации в outbox добавились новые операции
+      // (например, reorder в момент push) — иначе replaceCache откатит свежие изменения.
+      let remaining = 3;
+      do {
+        await syncNow();
+        const pending = await db.outbox.count();
+        if (pending === 0) break;
+        remaining--;
+      } while (remaining > 0);
       await loadFromLocal();
       setState((s) => ({ ...s, lastSynced: new Date(), online: true }));
     } catch {
       setState((s) => ({ ...s, online: false }));
     } finally {
       syncingRef.current = false;
+      if (pendingSyncRef.current) {
+        pendingSyncRef.current = false;
+        doSync();
+      }
     }
   }, [loadFromLocal]);
 
@@ -100,6 +132,7 @@ export function useInventory() {
     ...state,
     refresh: doSync,
     refreshLocal: loadFromLocal,
+    optimisticReorder,
   };
 }
 

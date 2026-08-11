@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -51,7 +51,7 @@ function ProductRow({ product, disabled, onEdit, onDelete, onCycle }: { product:
 }
 
 export function InventoryApp() {
-  const { categories, products, loading, online, pendingOps, refresh, refreshLocal } = useInventory();
+  const { categories, products, loading, online, pendingOps, refresh, refreshLocal, optimisticReorder } = useInventory();
   const { userName, setUserName } = useUser();
 
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -68,6 +68,16 @@ export function InventoryApp() {
   const [userInput, setUserInput] = useState(userName);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [msg, setMsg] = useState("");
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSync = useCallback(() => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      syncTimerRef.current = null;
+      if (online) {
+        refresh().catch(() => {});
+      }
+    }, 400);
+  }, [online, refresh]);
 
   const productsByCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
@@ -187,7 +197,7 @@ export function InventoryApp() {
 
   const reorderDisabled = filter !== "ALL" || search.trim() !== "";
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-  function handleDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const activeProduct = products.find((p) => p.id === active.id);
@@ -199,11 +209,24 @@ export function InventoryApp() {
     const fromIndex = current.findIndex((p) => p.id === active.id);
     const toIndex = current.findIndex((p) => p.id === over.id);
     if (fromIndex === -1 || toIndex === -1) return;
-    const reordered = arrayMove(current, fromIndex, toIndex);
-    reorderProductsLocal(categoryId, reordered.map((p) => p.id), userName || null).then(() => refreshLocal());
-    if (online) {
-      refresh().catch(() => {});
+    const orderedIds = arrayMove(current, fromIndex, toIndex).map((p) => p.id);
+
+    // 1) Оптимистично: сразу ставим товары в новый порядок в UI (без ожидания сети/БД).
+    optimisticReorder(categoryId, orderedIds);
+
+    // 2) Пишем в IndexedDB + outbox и подтверждаем из локального кэша.
+    try {
+      await reorderProductsLocal(categoryId, orderedIds, userName || null);
+      await refreshLocal();
+    } catch {
+      // При ошибке локальной записи возвращаем порядок из кэша и сообщаем.
+      await refreshLocal();
+      showMsg("Не удалось изменить порядок");
+      return;
     }
+
+    // 3) Фоновая отправка на сервер с debounce (операция уже в outbox).
+    scheduleSync();
   }
   if (loading) {
     return <div className="flex items-center justify-center py-24 text-gray-500">Загрузка...</div>;
