@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DndContext, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -26,12 +26,14 @@ function ProductRow({ product, disabled, onEdit, onDelete, onCycle }: { product:
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`flex items-center justify-between gap-2 py-2 ${isDragging ? "relative z-10 opacity-80" : ""}`}
     >
-      <div className="flex min-w-0 items-center gap-2">
-        {!disabled && (
-          <button type="button" {...attributes} {...listeners} aria-label={`Переместить «${product.name}»`} className="shrink-0 cursor-grab touch-none rounded-lg px-1.5 py-2 text-gray-400 active:cursor-grabbing">
-            ⠿
-          </button>
-        )}
+      {/* Drag-зона: ручка ⠿ + название товара. Кнопки справа (статус, ✎, ✕) не перехватываются. */}
+      <div
+        {...attributes}
+        {...listeners}
+        aria-label={disabled ? undefined : `Переместить «${product.name}»`}
+        className={`flex min-w-0 flex-1 cursor-grab items-center gap-2 active:cursor-grabbing ${disabled ? "" : "touch-manipulation"}`}
+      >
+        {!disabled && <span className="shrink-0 text-gray-400">⠿</span>}
         {product.photoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
@@ -51,7 +53,7 @@ function ProductRow({ product, disabled, onEdit, onDelete, onCycle }: { product:
 }
 
 export function InventoryApp() {
-  const { categories, products, loading, online, pendingOps, refresh, refreshLocal, optimisticReorder } = useInventory();
+  const { categories, products, loading, online, pendingOps, refresh, refreshLocal, optimisticReorder, optimisticSetStatus } = useInventory();
   const { userName, setUserName } = useUser();
 
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -136,16 +138,37 @@ export function InventoryApp() {
     setTimeout(() => setMsg(""), 2500);
   };
 
-  async function cycleStatus(product: Product) {
-    const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(product.stockStatus) + 1) % STATUS_CYCLE.length];
-    // 1) Пишем в IndexedDB и сразу обновляем UI из локального кэша — без ожидания сети.
-    await setStockStatusLocal(product.id, next, userName || "Аноним");
-    refreshLocal();
+  // Актуальный статус при быстрых тапах + таймеры отложенной записи.
+  const pendingStatusRef = useRef<Map<string, StockStatus>>(new Map());
+  const statusTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  useEffect(() => {
+    return () => {
+      statusTimersRef.current.forEach((t) => clearTimeout(t));
+    };
+  }, []);
 
-    // 2) Синхронизация с сервером уходит в фон и не блокирует кнопку.
-    if (online) {
-      refresh().catch(() => {});
-    }
+  function cycleStatus(product: Product) {
+    // Следующий статус считаем от последнего «запушенного» тапом, а не от устаревшего рендера.
+    const current = pendingStatusRef.current.get(product.id) ?? product.stockStatus;
+    const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length];
+    // 1) Мгновенное (оптимистичное) обновление UI — тапы не «съедаются» ожиданием сети/БД.
+    pendingStatusRef.current.set(product.id, next);
+    optimisticSetStatus(product.id, next, userName || "Аноним");
+
+    // 2) Отложенная запись: при быстрых тапах в IndexedDB/outbox попадает только финальный статус.
+    const existing = statusTimersRef.current.get(product.id);
+    if (existing) clearTimeout(existing);
+    statusTimersRef.current.set(
+      product.id,
+      setTimeout(() => {
+        statusTimersRef.current.delete(product.id);
+        const final = pendingStatusRef.current.get(product.id);
+        if (!final) return;
+        pendingStatusRef.current.delete(product.id);
+        void setStockStatusLocal(product.id, final, userName || "Аноним").then(() => refreshLocal());
+        scheduleSync();
+      }, 300)
+    );
   }
 
   async function handleCategorySubmit(id: string, name: string) {
@@ -196,7 +219,10 @@ export function InventoryApp() {
   }
 
   const reorderDisabled = filter !== "ALL" || search.trim() !== "";
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import { SYNC_INTERVAL_MS } from "@/lib/constants";
 import { syncNow } from "@/lib/sync";
-import type { Category, Product } from "@/lib/types";
+import type { Category, Product, StockStatus } from "@/lib/types";
 
 interface InventoryState {
   categories: Category[];
@@ -73,6 +73,13 @@ export function useInventory() {
     });
   }, []);
 
+  const optimisticSetStatus = useCallback((id: string, status: StockStatus, updatedBy: string | null) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => (p.id === id ? { ...p, stockStatus: status, updatedBy } : p)),
+    }));
+  }, []);
+
   const doSync = useCallback(async () => {
     // Если синхронизация уже идёт — запоминаем запрос и выполним ещё один проход после.
     if (syncingRef.current) {
@@ -133,6 +140,7 @@ export function useInventory() {
     refresh: doSync,
     refreshLocal: loadFromLocal,
     optimisticReorder,
+    optimisticSetStatus,
   };
 }
 
@@ -250,6 +258,8 @@ export async function setStockStatusLocal(
 ) {
   const now = updatedAt ?? new Date().toISOString();
   await db.products.update(id, { stockStatus, updatedAt: now, updatedBy });
+  // Коалесинг: при быстрых тапах в очередь попадает только последняя операция для товара.
+  await db.outbox.filter((op) => op.type === "setStockStatus" && op.id === id).delete();
   await db.outbox.add({
     type: "setStockStatus" as const,
     id,
