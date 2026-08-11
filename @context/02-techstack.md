@@ -106,6 +106,5 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ## Скрипты
 
 - `npm run dev` / `build` / `start` / `lint`
-- `node scripts/generate-icons.mjs` — генерация PWA-иконок
 - `npx prisma migrate dev --name <имя>` — миграции
 - `npx prisma studio` — просмотр БД

@@ -64,9 +64,7 @@ prisma/
 prisma.config.ts       — конфигурация Prisma CLI
 public/
   sw.js                — Service Worker (кэширование app shell и API)
-  icons/               — иконки PWA (генерируются скриптом)
-scripts/
-  generate-icons.mjs   — генерация PWA-иконок
+  icons/               — иконки PWA (icon-192.png, icon-512.png)
 ```
 
 ## Схема базы данных
@@ -154,4 +152,3 @@ npm run build        # продакшен-сборка
 npm run start        # запуск production
 npx prisma studio    # просмотр базы данных (UI)
 npx prisma migrate dev --name название  # новая миграция
-node scripts/generate-icons.mjs  # пересоздать PWA-иконки
