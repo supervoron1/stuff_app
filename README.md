@@ -43,11 +43,14 @@ components/
   inventory.tsx        — главный компонент (списки, фильтры, модалки)
   modal.tsx            — мобильная модалка (bottom sheet)
   forms.tsx            — формы категории/товара (с загрузкой фото)
-  stock-indicator.tsx  — цветной индикатор наличия (тап = смена статуса)
+  stock-check.tsx      — цветная галочка ✓ наличия (тап = смена статуса, см. D14)
+  stock-indicator.tsx  — старый индикатор-«пилюля» (не используется, оставлен по просьбе дизайнера)
   history.tsx          — окно истории изменений
   pwa-register.tsx     — регистрация Service Worker
+  scroll-to-top.tsx    — плавающая кнопка «наверх»
 hooks/
   use-inventory.ts     — офлайн-first хук: кэш IndexedDB + периодическая синхронизация
+  use-theme.ts         — тема: light/dark/system (localStorage, анти-flash)
   use-user.ts          — имя пользователя (localStorage)
 lib/
   prisma.ts            — Prisma Client (driver adapter @prisma/adapter-pg)

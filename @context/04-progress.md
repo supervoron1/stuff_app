@@ -10,7 +10,7 @@
 - [x] **Last-write-wins** по `updatedAt` / `createdAt`
 - [x] **История изменений** — `/api/audit`, окно «История», имя пользователя в localStorage
 - [x] **Фото товаров** — Supabase Storage через `/api/upload` (только онлайн)
-- [x] **PWA** — манифест, иконки (`scripts/generate-icons.mjs`), Service Worker
+- [x] **PWA** — манифест, иконки (`public/icons/icon-192.png` / `icon-512.png`, см. D21), Service Worker
 - [x] **Оптимизация на Vercel** — оптимистичный отклик UI + 1 запрос вместо 3 (см. D7)
 - [x] **Миграции БД** — `20260806141016_init` (базовая) и `20260811190635_product_sort_order` (sortOrder товаров) применены к Neon
 - [x] **README** — актуализирован (установка, env, деплой, PWA)

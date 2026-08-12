@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { STATUS_LABELS } from "@/lib/constants";
+import { STATUS_CYCLE, STATUS_LABELS } from "@/lib/constants";
 import type { StockStatus } from "@/lib/types";
 
 
@@ -177,7 +177,7 @@ async function applyOp(op: SyncOp) {
       }
 
       const status = String(op.payload.stockStatus ?? "") as StockStatus;
-      if (!["SUFFICIENT", "LOW", "OUT"].includes(status)) break;
+      if (!STATUS_CYCLE.includes(status)) break;
 
       await prisma.product.update({
         where: { id: op.id },
