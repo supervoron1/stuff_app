@@ -15,7 +15,8 @@
 **Решение:** при одновременном изменении с двух устройств побеждает запись с более поздним `updatedAt` (товар) / `createdAt` (операция очереди).
 **Почему:** просто и предсказуемо для небольшого объёма данных (≤200 товаров), согласовано с пользователем.
 
-## D4. База данных: Neon (PostgreSQL) вместо Supabase
+## D4. База данных: Neon (PostgreSQL) вместо Supabase (заменено D27)
+> **⚠️ Устарело:** с 12.08.2026 БД снова на Supabase — через IPv4-пулер Supavisor (см. D27). Запись оставлена как история.
 **Проблема:** Supabase на бесплатном тарифе — direct-подключение к БД **только по IPv6** (порт 5432 недоступен с IPv4-сети пользователя); connection pooler для проекта не был включён → ошибка `P1001` / `tenant not found`.
 **Решение:** основная БД — **Neon** (бесплатный PostgreSQL, работает по IPv4, совместим с Prisma и Vercel). Supabase оставлен **только для фото** (его API доступен по IPv4).
 **Почему:** минимальные правки кода (только `DATABASE_URL`), мгновенная работоспособность из локальной сети и на Vercel.
@@ -196,4 +197,20 @@
 - `migrate deploy` применяет только **неприменённые** миграции и работает только вперёд (откатов нет).
 - Важно: `DATABASE_URL` должна быть задана в Environment Variables на Vercel, иначе сборка упадёт на `migrate deploy`.
 - Версия `CACHE_NAME` поднята до `inventory-v2.3.1` (релиз автодеплоя миграций).
+
+## D27. Переезд БД с Neon на Supabase через пулер Supavisor (IPv4)
+**Проблема:** пользователь решил вернуться с Neon на Supabase как единую платформу (БД + Storage). Блокер из D4 остался: direct-подключение к Supabase — только IPv6 на бесплатном тарифе, а платный IPv4 add-on подключать не хотелось.
+**Решение:** подключаться к БД Supabase через **shared pooler (Supavisor) в session mode** — он работает по IPv4 **бесплатно** на всех тарифах:
+```
+postgresql://postgres.<PROJECT_REF>:<PASSWORD>@aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=no-verify
+```
+**Почему:** официальная таблица Supabase: direct — IPv6 only (Free); shared pooler session/transaction — IPv4 (Free). Это единственный бесплатный способ с IPv4-сети.
+**Детали / грабли:**
+- **Регион пулера ≠ регион проекта.** Проект `mpsggzlgfgflqeiovrlw` создан в `eu-west-1`, но пулер живёт на **`aws-1-eu-west-1`**, а не `aws-0-eu-west-1` (ошибка `tenant/user not found` на aws-0). Проверять хост надо по дашборду Connect → Session pooler.
+- **Имя пользователя** в пулере — `postgres.<PROJECT_REF>` (два сегмента), не просто `postgres`.
+- **`sslmode=no-verify` обязателен** для node-postgres: pg v9 трактует `require`/`prefer`/`verify-ca` как `verify-full` → `self-signed certificate in certificate chain` (у Supavisor самоподписанная цепочка). `no-verify` = SSL без проверки сертификата.
+- **Перенос данных**: локальный `pg_dump` (≤ v14.5) несовместим с сервером Neon 18.4 → экспорт через `psql \copy TO ... CSV` (client-side); схема — из Prisma-миграций через `prisma migrate deploy` (создаёт и `_prisma_migrations`); импорт `\copy FROM` в порядке FK (categories → products → audit_logs). Сверка счётчиков и метрик до/после — идентична (20/101/458).
+- **Ограничения пулера**: не работает логическая репликация, `LISTEN/NOTIFY` (в транзакционном режиме), `pg_dump` с direct-хоста по IPv6. Для обычного CRUD/Prisma — без ограничений.
+- **RLS отключён** на таблицах (принёс Prisma): доступ идёт через пользователя `postgres` по пулеру, клиентские supabase-ключи (anon) для данных не используются (всё через `/api/*`), поэтому для работы это не мешает. Включать RLS без политик нельзя — заблокирует доступ.
+- Neon-строка оставлена в `.env` закомментированной (откат).
 

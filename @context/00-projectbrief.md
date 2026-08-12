@@ -18,8 +18,8 @@
 - Конфликты: last-write-wins (побеждает поздняя запись по `updatedAt`)
 
 ## Сокращённая сводка (для быстрого входа в контекст)
-- **Стек**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4 + Prisma 7 + PostgreSQL (Neon) + Supabase Storage + Dexie (IndexedDB) + @dnd-kit (drag-n-drop)
-- **БД**: Neon (IPv4). Изначально пытались Supabase, но его direct-хост работает только по IPv6 на бесплатном тарифе → перешли на Neon
+- **Стек**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4 + Prisma 7 + PostgreSQL (Supabase pooler) + Supabase Storage + Dexie (IndexedDB) + @dnd-kit (drag-n-drop)
+- **БД**: Supabase (пулер Supavisor session mode, IPv4 — `aws-1-eu-west-1.pooler.supabase.com:5432`, см. D27). Изначально был Neon (D4), затем переехали обратно на Supabase через IPv4-пулер
 - **Офлайн**: Dexie (IndexedDB) → локальный кэш `categories`/`products` + очередь `outbox`; push на `/api/sync` при появлении сети (outbox pattern)
 - **Оптимистичный UI**: смена статуса и перетаскивание обновляют интерфейс мгновенно; синхронизация в фоне с debounce
 - **Аудит**: таблица `AuditLog` + имя пользователя из localStorage
