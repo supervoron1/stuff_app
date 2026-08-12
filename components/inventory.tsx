@@ -237,7 +237,7 @@ export function InventoryApp() {
   };
 
   const counts = useMemo(() => {
-    const c = { SUFFICIENT: 0, LOW: 0, OUT: 0, total: products.length };
+    const c = { SUFFICIENT: 0, LOW: 0, OUT: 0, CRITICAL: 0, total: products.length };
     for (const p of products) c[p.stockStatus]++;
     return c;
   }, [products]);
@@ -472,14 +472,19 @@ export function InventoryApp() {
         className="mb-3 w-full rounded-xl border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-base outline-none focus:border-green-500"
       />
 
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {(["ALL", "SUFFICIENT", "LOW", "OUT"] as Filter[]).map((f) => (
+      <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
+        {(["ALL", "SUFFICIENT", "LOW", "OUT", "CRITICAL"] as Filter[]).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${filter === f ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
+            aria-label={f === "CRITICAL" ? `Критично (${counts[f]})` : undefined}
+            className={`shrink-0 rounded-full px-2.5 py-1.5 text-xs font-medium ${filter === f ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
           >
-            {f === "ALL" ? `Все (${counts.total})` : `${STATUS_LABELS[f]} (${counts[f]})`}
+            {f === "ALL" ? `Все (${counts.total})` : f === "CRITICAL" ? (
+              <span className="font-bold text-red-600 dark:text-red-400">! ({counts[f]})</span>
+            ) : (
+              `${STATUS_LABELS[f]} (${counts[f]})`
+            )}
           </button>
         ))}
       </div>

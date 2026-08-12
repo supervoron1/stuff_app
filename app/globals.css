@@ -11,6 +11,7 @@
   --status-sufficient: #22c55e;
   --status-low: #eab308;
   --status-out: #ef4444;
+  --status-critical: #dc2626;
 }
 
 .dark {
@@ -21,6 +22,7 @@
   --status-sufficient: #4ade80;
   --status-low: #facc15;
   --status-out: #f87171;
+  --status-critical: #fca5a5;
 }
 
 @theme inline {

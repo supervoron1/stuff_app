@@ -12,6 +12,7 @@ enum StockStatus {
   SUFFICIENT // Зелёный — достаточно
   LOW        // Жёлтый — мало
   OUT        // Красный — отсутствует
+  CRITICAL   // Красный «!» — критично нужно (после OUT)
 }
 
 model Category {

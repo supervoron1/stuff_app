@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { prisma } from "./prisma";
-import { STATUS_LABELS } from "./constants";
+import { STATUS_CYCLE, STATUS_LABELS } from "./constants";
 import type { StockStatus } from "./types";
 
 const categorySchema = z.object({
@@ -17,7 +17,8 @@ const productSchema = z.object({
   photoUrl: z.string().url().optional().nullable(),
 });
 
-const stockStatusSchema = z.enum(["SUFFICIENT", "LOW", "OUT"]);
+// Единый источник статусов — STATUS_CYCLE из lib/constants.ts (не дублировать список здесь).
+const stockStatusSchema = z.enum(STATUS_CYCLE as [StockStatus, ...StockStatus[]]);
 
 function getUserName(formData: FormData): string {
   return formData.get("userName")?.toString().trim() || "Аноним";

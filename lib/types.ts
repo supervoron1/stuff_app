@@ -1,4 +1,4 @@
-export type StockStatus = "SUFFICIENT" | "LOW" | "OUT";
+export type StockStatus = "SUFFICIENT" | "LOW" | "OUT" | "CRITICAL";
 
 export interface Category {
   id: string;

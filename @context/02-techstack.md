@@ -25,7 +25,7 @@
 ## Схема БД (`prisma/schema.prisma`)
 
 ```prisma
-enum StockStatus { SUFFICIENT LOW OUT }  // UI-подписи: 🟢 Есть / 🟡 Мало / 🔴 Нет
+enum StockStatus { SUFFICIENT LOW OUT CRITICAL }  // UI-подписи: 🟢 Есть / 🟡 Мало / 🔴 Нет / 🔴 «!» Критично
 
 model Category {
   id        String    @id @default(uuid())
@@ -101,7 +101,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 - Class-based: `@custom-variant dark` в `app/globals.css`; класс `dark` на `<html>`.
 - `hooks/use-theme.ts` — режимы light/dark/system, localStorage, анти-flash-скрипт в `app/layout.tsx`, обновление `meta theme-color`.
-- Цвета статусов — CSS-переменные `--status-sufficient/low/out` (осветляются в `.dark`); `stock-check.tsx` использует `var(--status-*)`.
+- Цвета статусов — CSS-переменные `--status-sufficient/low/out/critical` (осветляются в `.dark`); `stock-check.tsx` использует `var(--status-*)`.
 
 ## Скрипты
 

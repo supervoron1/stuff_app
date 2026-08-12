@@ -12,7 +12,8 @@
 export const StockStatus = {
   SUFFICIENT: 'SUFFICIENT',
   LOW: 'LOW',
-  OUT: 'OUT'
+  OUT: 'OUT',
+  CRITICAL: 'CRITICAL'
 } as const
 
 export type StockStatus = (typeof StockStatus)[keyof typeof StockStatus]
