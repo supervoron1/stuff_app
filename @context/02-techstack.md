@@ -109,6 +109,12 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 - `npx prisma migrate dev --name <имя>` — миграции
 - `npx prisma studio` — просмотр БД
 
+## Коммиты (Gitmoji)
+
+- Все коммиты — в стиле Gitmoji + Conventional Commits: `:emoji: Тип: описание` (пример: `:label: Переименовано приложение из AppOld в AppNew`).
+- Справочник: `@references/emoji-for-commits.md` (файл в репо).
+- Часто используемые: ✨ `:sparkles:` feat · 🐛 `:bug:` fix · 📝 `:memo:` docs · 🔨 `:hammer:` refactor · 🎨 `:art:` style · 🔧 `:wrench:` chore · 🏷️ `:label:` ребрендинг/имена · 🚚 `:truck:` переименование файлов · 🔖 `:bookmark:` релиз · 🚀 `:rocket:` deploy.
+
 ## Релиз: версионирование иконок и Service Worker (важно!)
 
 ### 1. Иконки приложения (`icon-192.png` / `icon-512.png`)
