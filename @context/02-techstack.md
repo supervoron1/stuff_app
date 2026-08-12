@@ -106,7 +106,10 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ## Скрипты
 
 - `npm run dev` / `build` / `start` / `lint`
-- `npx prisma migrate dev --name <имя>` — миграции
+- `postinstall` — `prisma generate` (генерирует Prisma Client после установки зависимостей)
+- `vercel-build` — `prisma generate && prisma migrate deploy && next build` (выполняется Vercel вместо `build`: автоприменение миграций перед сборкой)
+- `npx prisma migrate dev --name <имя>` — миграции (локальная разработка)
+- `npx prisma migrate deploy` — применение миграций вручную (продакшен)
 - `npx prisma studio` — просмотр БД
 
 ## Коммиты (Gitmoji)
