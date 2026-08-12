@@ -73,6 +73,17 @@ export function useInventory() {
     });
   }, []);
 
+  const optimisticReorderCategories = useCallback((orderedIds: string[]) => {
+    const rank = new Map<string, number>();
+    orderedIds.forEach((id, index) => rank.set(id, index));
+    setState((s) => {
+      const categories = s.categories
+        .map((c) => (rank.has(c.id) ? { ...c, sortOrder: rank.get(c.id)! } : c))
+        .toSorted((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+      return { ...s, categories };
+    });
+  }, []);
+
   const optimisticSetStatus = useCallback((id: string, status: StockStatus, updatedBy: string | null) => {
     setState((s) => ({
       ...s,
@@ -142,6 +153,7 @@ export function useInventory() {
     refresh: doSync,
     refreshLocal: loadFromLocal,
     optimisticReorder,
+    optimisticReorderCategories,
     optimisticSetStatus,
   };
 }
@@ -290,6 +302,26 @@ export async function reorderProductsLocal(
     type: "reorderProducts" as const,
     id: createId(),
     payload: { categoryId, orderedIds, updatedBy },
+    createdAt: now,
+  });
+}
+
+/**
+ * Перестановка категорий: проставляет sortOrder 0..N всем категориям
+ * (полный список id в новом порядке) и ставит операцию в очередь
+ * для серверной синхронизации. В аудит не пишем — по соглашению (как товары).
+ */
+export async function reorderCategoriesLocal(orderedIds: string[], updatedBy: string | null = null) {
+  const now = new Date().toISOString();
+  await db.transaction("rw", db.categories, async () => {
+    for (const [index, categoryId] of orderedIds.entries()) {
+      await db.categories.update(categoryId, { sortOrder: index, updatedAt: now });
+    }
+  });
+  await db.outbox.add({
+    type: "reorderCategories" as const,
+    id: createId(),
+    payload: { orderedIds, updatedBy },
     createdAt: now,
   });
 }

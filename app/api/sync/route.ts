@@ -227,5 +227,37 @@ async function applyOp(op: SyncOp) {
       );
       break;
     }
+
+    // Перестановка категорий: полный список id в новом порядке целиком заменяет
+    // sortOrder всех категорий (последняя операция побеждает).
+    // В аудит не пишем — по соглашению с пользователем (как товары).
+    case "reorderCategories": {
+      const rawOrderedIds = Array.isArray(op.payload.orderedIds)
+        ? op.payload.orderedIds.map(String)
+        : [];
+      if (rawOrderedIds.length === 0) break;
+
+      const categories = await prisma.category.findMany({
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true },
+      });
+      const allIds = new Set(categories.map((c) => c.id));
+      const orderedIds = rawOrderedIds.filter((id) => allIds.has(id));
+      // Категории, не попавшие в список (например, созданные на другом устройстве),
+      // дописываем в конец в их текущем относительном порядке.
+      const remainder = categories.map((c) => c.id).filter((id) => !orderedIds.includes(id));
+      const fullOrder = [...orderedIds, ...remainder];
+      if (fullOrder.length === 0) break;
+
+      await prisma.$transaction(
+        fullOrder.map((id, index) =>
+          prisma.category.update({
+            where: { id },
+            data: { sortOrder: index },
+          })
+        )
+      );
+      break;
+    }
   }
 }

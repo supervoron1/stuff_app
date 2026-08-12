@@ -67,4 +67,13 @@ export type SyncOperation =
         updatedBy: string | null;
       };
       createdAt: string;
+    }
+  | {
+      type: "reorderCategories";
+      id: string;
+      payload: {
+        orderedIds: string[];
+        updatedBy: string | null;
+      };
+      createdAt: string;
     };

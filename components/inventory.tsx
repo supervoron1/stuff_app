@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DndContext, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors, type CollisionDetection, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-import { useInventory, setStockStatusLocal, createCategoryLocal, updateCategoryLocal, deleteCategoryLocal, createProductLocal, updateProductLocal, deleteProductLocal, reorderProductsLocal } from "@/hooks/use-inventory";
+import { useInventory, setStockStatusLocal, createCategoryLocal, updateCategoryLocal, deleteCategoryLocal, createProductLocal, updateProductLocal, deleteProductLocal, reorderProductsLocal, reorderCategoriesLocal } from "@/hooks/use-inventory";
 import { useUser } from "@/hooks/use-user";
 import { useTheme } from "@/hooks/use-theme";
 import { StockCheck } from "./stock-check";
@@ -53,8 +53,113 @@ function ProductRow({ product, disabled, onEdit, onDelete, onCycle }: { product:
   );
 }
 
+// Карточка категории с перетаскиванием (dnd-kit).
+// Drag-зона: весь заголовок (шеврон + ручка ⠿ + название + счётчик).
+// Короткий тап — сворачивание/разворачивание; долгий тап (200 мс) — перетаскивание.
+// Кнопки ✎ / + / ✕ — вне drag-зоны и остаются кликабельными.
+function CategoryCard({
+  category,
+  items,
+  expanded,
+  disabled,
+  productReorderDisabled,
+  onToggle,
+  onEdit,
+  onAddProduct,
+  onDelete,
+  onEditProduct,
+  onDeleteProduct,
+  onCycle,
+}: {
+  category: Category;
+  items: Product[];
+  expanded: boolean;
+  disabled: boolean;
+  productReorderDisabled: boolean;
+  onToggle: VoidFunction;
+  onEdit: VoidFunction;
+  onAddProduct: VoidFunction;
+  onDelete: VoidFunction;
+  onEditProduct: (p: Product) => void;
+  onDeleteProduct: (p: Product) => void;
+  onCycle: (p: Product) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id, disabled });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-sm ${isDragging ? "relative z-10 opacity-80" : ""}`}
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          onClick={onToggle}
+          aria-expanded={expanded}
+          aria-label={disabled ? undefined : `Переместить категорию «${category.name}»`}
+          className={`flex min-w-0 flex-1 cursor-grab items-center gap-1.5 text-left active:cursor-grabbing ${disabled ? "" : "touch-manipulation"}`}
+        >
+          <span className="shrink-0 text-sm text-gray-400 dark:text-gray-500">{expanded ? "▾" : "▸"}</span>
+          {!disabled && <span className="shrink-0 text-gray-400 dark:text-gray-500">⠿</span>}
+          <span className="truncate font-semibold text-gray-900 dark:text-gray-100">{category.name}</span>
+          {items.length > 0 && (
+            <span className="shrink-0 text-xs font-normal text-gray-400 dark:text-gray-500">{items.length}</span>
+          )}
+        </button>
+        <div className="flex shrink-0 gap-1">
+          <button
+            onClick={onEdit}
+            className="rounded-lg px-2 py-1 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            ✎
+          </button>
+          <button
+            onClick={onDelete}
+            className="rounded-lg px-2 py-1 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+          >
+            ✕
+          </button>
+          <button
+            onClick={onAddProduct}
+            className="rounded-lg px-2 py-1 text-sm text-green-600 hover:bg-green-50"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          {items.length === 0 ? (
+            <p className="py-2 text-sm text-gray-400 dark:text-gray-500">Нет товаров</p>
+          ) : (
+            <SortableContext items={items.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                {items.map((p) => (
+                  <ProductRow
+                    key={p.id}
+                    product={p}
+                    disabled={productReorderDisabled || items.length < 2}
+                    onEdit={() => onEditProduct(p)}
+                    onDelete={() => onDeleteProduct(p)}
+                    onCycle={() => onCycle(p)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function InventoryApp() {
-  const { categories, products, loading, online, pendingOps, refresh, refreshLocal, optimisticReorder, optimisticSetStatus } = useInventory();
+  const { categories, products, loading, online, pendingOps, refresh, refreshLocal, optimisticReorder, optimisticReorderCategories, optimisticSetStatus } = useInventory();
   const { userName, setUserName } = useUser();
   const { theme, toggleTheme, themeIcon, themeTitle } = useTheme();
 
@@ -180,7 +285,9 @@ export function InventoryApp() {
       await updateCategoryLocal(id, name, userName || null);
       showMsg("Категория обновлена");
     } else {
-      const sortOrder = categories.length;
+      // Новые категории встают в конец списка (после максимального sortOrder).
+      const maxSort = categories.reduce((m, c) => Math.max(m, c.sortOrder), -1);
+      const sortOrder = maxSort + 1;
       await createCategoryLocal(id, name, sortOrder, userName || null);
       showMsg("Категория создана");
     }
@@ -223,6 +330,25 @@ export function InventoryApp() {
   }
 
   const reorderDisabled = filter !== "ALL" || search.trim() !== "";
+  // Перетаскивание категорий доступно только в режиме «Все» без поиска (как у товаров).
+  const categoryReorderDisabled = reorderDisabled || visibleCategories.length < 2;
+
+  // Кастомная коллизия: активная категория «наводится» только на категории,
+  // активный товар — только на товары. Это позволяет безопасно совмещать
+  // два SortableContext (категории + товары) в одном DndContext.
+  const collisionDetection = useCallback<CollisionDetection>(
+    (args) => {
+      const activeId = String(args.active.id);
+      const isCategory = visibleCategories.some((c) => c.id === activeId);
+      const filtered = args.droppableContainers.filter((dc) => {
+        const id = String(dc.id);
+        return isCategory ? visibleCategories.some((c) => c.id === id) : products.some((p) => p.id === id);
+      });
+      return closestCenter({ ...args, droppableContainers: filtered });
+    },
+    [visibleCategories, products]
+  );
+
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
@@ -230,6 +356,33 @@ export function InventoryApp() {
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+
+    // Перетаскивание категории: меняем порядок категорий.
+    if (visibleCategories.some((c) => c.id === active.id)) {
+      const fromIndex = visibleCategories.findIndex((c) => c.id === active.id);
+      const toIndex = visibleCategories.findIndex((c) => c.id === over.id);
+      if (fromIndex === -1 || toIndex === -1) return;
+      const orderedIds = arrayMove(visibleCategories, fromIndex, toIndex).map((c) => c.id);
+
+      // 1) Оптимистично: сразу перестраиваем порядок категорий в UI.
+      optimisticReorderCategories(orderedIds);
+
+      // 2) Пишем в IndexedDB + outbox и подтверждаем из локального кэша.
+      try {
+        await reorderCategoriesLocal(orderedIds, userName || null);
+        await refreshLocal();
+      } catch {
+        // При ошибке локальной записи возвращаем порядок из кэша и сообщаем.
+        await refreshLocal();
+        showMsg("Не удалось изменить порядок категорий");
+        return;
+      }
+
+      // 3) Фоновая отправка на сервер с debounce (операция уже в outbox).
+      scheduleSync();
+      return;
+    }
+
     const activeProduct = products.find((p) => p.id === active.id);
     const overProduct = products.find((p) => p.id === over.id);
     if (!activeProduct || !overProduct || activeProduct.categoryId !== overProduct.categoryId) return;
@@ -364,86 +517,37 @@ export function InventoryApp() {
         </div>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        {visibleCategories.map((cat) => {
-        const items = productsByCategory.get(cat.id) ?? [];
-        const expanded = isCategoryExpanded(cat.id);
-        return (
-          <div key={cat.id} className="mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-sm">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => toggleCategory(cat.id)}
-                aria-expanded={expanded}
-                className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-              >
-                <span className="shrink-0 text-sm text-gray-400 dark:text-gray-500">{expanded ? "▾" : "▸"}</span>
-                <span className="truncate font-semibold text-gray-900 dark:text-gray-100">{cat.name}</span>
-                {items.length > 0 && (
-                  <span className="shrink-0 text-xs font-normal text-gray-400 dark:text-gray-500">{items.length}</span>
-                )}
-              </button>
-              <div className="flex shrink-0 gap-1">
-                <button
-                  onClick={() => setCategoryModal({ open: true, editing: cat })}
-                  className="rounded-lg px-2 py-1 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => setDeleteModal({ category: cat, product: null })}
-                  className="rounded-lg px-2 py-1 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
-                >
-                  ✕
-                </button>
-                <button
-                  onClick={() => {
-                    // При создании товара сбрасываем фильтр статуса на «Все»,
-                    // иначе новый товар (по умолчанию «Достаточно») не будет виден в списке.
-                    setFilter("ALL");
-                    // Разворачиваем категорию, чтобы новый товар был сразу виден.
-                    setCollapsedIds((prev) => {
-                      const next = new Set(prev);
-                      next.delete(cat.id);
-                      return next;
-                    });
-                    setProductModal({ open: true, categoryId: cat.id, editing: null });
-                  }}
-                  className="rounded-lg px-2 py-1 text-sm text-green-600 hover:bg-green-50"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
-            >
-              <div className="min-h-0 overflow-hidden">
-                {items.length === 0 ? (
-                  <p className="py-2 text-sm text-gray-400 dark:text-gray-500">Нет товаров</p>
-                ) : (
-                  <SortableContext items={items.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                    <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {items.map((p) => (
-                        <ProductRow
-                          key={p.id}
-                          product={p}
-                          disabled={reorderDisabled || items.length < 2}
-                          onEdit={() => setProductModal({ open: true, categoryId: p.categoryId, editing: p })}
-                          onDelete={() => setDeleteModal({ category: null, product: p })}
-                          onCycle={() => cycleStatus(p)}
-                        />
-                    ))}
-                    </ul>
-                  </SortableContext>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
+      <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragEnd={handleDragEnd}>
+        <SortableContext items={visibleCategories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          {visibleCategories.map((cat) => (
+            <CategoryCard
+              key={cat.id}
+              category={cat}
+              items={productsByCategory.get(cat.id) ?? []}
+              expanded={isCategoryExpanded(cat.id)}
+              disabled={categoryReorderDisabled}
+              productReorderDisabled={reorderDisabled}
+              onToggle={() => toggleCategory(cat.id)}
+              onEdit={() => setCategoryModal({ open: true, editing: cat })}
+              onAddProduct={() => {
+                // При создании товара сбрасываем фильтр статуса на «Все»,
+                // иначе новый товар (по умолчанию «Достаточно») не будет виден в списке.
+                setFilter("ALL");
+                // Разворачиваем категорию, чтобы новый товар был сразу виден.
+                setCollapsedIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(cat.id);
+                  return next;
+                });
+                setProductModal({ open: true, categoryId: cat.id, editing: null });
+              }}
+              onDelete={() => setDeleteModal({ category: cat, product: null })}
+              onEditProduct={(p) => setProductModal({ open: true, categoryId: p.categoryId, editing: p })}
+              onDeleteProduct={(p) => setDeleteModal({ category: null, product: p })}
+              onCycle={(p) => cycleStatus(p)}
+            />
+          ))}
+        </SortableContext>
       </DndContext>
 
       {/* Плавающая кнопка добавления категории */}
