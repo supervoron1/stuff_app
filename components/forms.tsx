@@ -11,10 +11,9 @@ interface CategoryFormProps {
   onClose: () => void;
   initial?: { id: string; name: string } | null;
   onSubmit: (id: string, name: string) => Promise<void> | void;
-  defaultSortOrder?: number;
 }
 
-export function CategoryForm({ open, onClose, initial, onSubmit, defaultSortOrder = 0 }: CategoryFormProps) {
+export function CategoryForm({ open, onClose, initial, onSubmit }: CategoryFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");

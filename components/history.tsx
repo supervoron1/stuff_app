@@ -41,6 +41,8 @@ export function History({ open, onClose }: HistoryProps) {
 
   useEffect(() => {
     if (!open) return;
+    // Осознанный паттерн: эффект инициализирует загрузку внешних данных (fetch).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch("/api/audit", { cache: "no-store" })
       .then((r) => r.json())

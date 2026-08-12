@@ -13,6 +13,9 @@ export function useUser() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
+      // Осознанный паттерн: чтение localStorage после гидратации (нельзя в useState —
+      // на сервере localStorage недоступен, иначе hydration mismatch).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (saved) setUserNameState(saved);
     } catch {
       // localStorage недоступен — игнорируем

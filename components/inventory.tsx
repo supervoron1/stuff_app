@@ -161,7 +161,7 @@ function CategoryCard({
 export function InventoryApp() {
   const { categories, products, loading, online, pendingOps, refresh, refreshLocal, optimisticReorder, optimisticReorderCategories, optimisticSetStatus } = useInventory();
   const { userName, setUserName } = useUser();
-  const { theme, toggleTheme, themeIcon, themeTitle } = useTheme();
+  const { toggleTheme, themeIcon, themeTitle } = useTheme();
 
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
@@ -251,8 +251,9 @@ export function InventoryApp() {
   const pendingStatusRef = useRef<Map<string, StockStatus>>(new Map());
   const statusTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   useEffect(() => {
+    const timers = statusTimersRef.current;
     return () => {
-      statusTimersRef.current.forEach((t) => clearTimeout(t));
+      timers.forEach((t) => clearTimeout(t));
     };
   }, []);
 

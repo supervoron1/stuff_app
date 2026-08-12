@@ -34,6 +34,9 @@ export function useInventory() {
 
   const syncingRef = useRef(false);
   const pendingSyncRef = useRef(false);
+  // Самоссылка для doSync: рекурсивный вызов идёт через ref, чтобы не ломать
+  // мемоизацию (React Compiler / preserve-manual-memoization).
+  const doSyncRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const refreshLocalCount = useCallback(async () => {
     const count = await db.outbox.count();
@@ -116,10 +119,17 @@ export function useInventory() {
       syncingRef.current = false;
       if (pendingSyncRef.current) {
         pendingSyncRef.current = false;
-        doSync();
+        doSyncRef.current();
       }
     }
   }, [loadFromLocal]);
+
+  // Актуальная ссылка на doSync для рекурсивного вызова из finally.
+  // Запись в ref — в эффекте (не в рендере): правило react-hooks/refs.
+  // Эффект размещён до mount-эффекта, чтобы ref был установлен к первому вызову doSync().
+  useEffect(() => {
+    doSyncRef.current = doSync;
+  });
 
   const handleOnline = useCallback(() => {
     setState((s) => ({ ...s, online: true }));
@@ -132,6 +142,8 @@ export function useInventory() {
 
   useEffect(() => {
     // Уточняем реальное состояние сети после гидратации (navigator.onLine).
+    // Осознанный hydration-safe паттерн (D22): на сервере/первом рендере online = true.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState((s) => ({ ...s, online: navigator.onLine }));
     loadFromLocal();
     doSync();
