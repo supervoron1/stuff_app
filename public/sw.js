@@ -1,4 +1,4 @@
-const CACHE_NAME = "inventory-v2.2.2";
+const CACHE_NAME = "inventory-v2.2.3";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 // Установка: кэшируем остов приложения.

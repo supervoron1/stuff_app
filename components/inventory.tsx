@@ -420,7 +420,7 @@ export function InventoryApp() {
       {/* Шапка */}
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Наличие товаров</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Запасы</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {online ? "● в сети" : "○ офлайн"}
             {pendingOps > 0 && ` · ожидает: ${pendingOps}`}

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Учёт наличия товаров",
-  description: "Приложение для учёта наличия товаров по категориям",
+  title: "Запасы",
+  description: "Приложение для учёта запасов по категориям",
   manifest: "/manifest.webmanifest",
 };
 

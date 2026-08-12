@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Учёт наличия товаров",
-    short_name: "Наличие",
-    description: "Приложение для учёта наличия товаров по категориям",
+    name: "Запасы",
+    short_name: "Запасы",
+    description: "Приложение для учёта запасов по категориям",
     id: "/",
     start_url: "/",
     display: "standalone",
