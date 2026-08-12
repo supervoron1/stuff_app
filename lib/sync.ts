@@ -54,6 +54,14 @@ export async function pushOutbox(): Promise<{ applied: number; errors: number }>
   if (!res.ok) throw new Error("Ошибка синхронизации");
 
   const data = await res.json();
+
+  // Если сервер не применил часть операций — очередь НЕ очищаем и кэш НЕ перезаписываем
+  // снимком: офлайн-изменения не должны теряться молча, они останутся в outbox
+  // и будут повторно отправлены при следующей синхронизации.
+  if (!data.ok || (data.errors ?? 0) > 0) {
+    return { applied: data.applied ?? 0, errors: data.errors ?? operations.length };
+  }
+
   await db.outbox.clear();
 
   // Сервер возвращает свежий снимок в том же ответе — обновляем кэш без лишнего GET.
