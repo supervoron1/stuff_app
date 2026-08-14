@@ -33,3 +33,4 @@
 - `@context/02-techstack.md` — стек, зависимости, схема БД
 - `@context/03-decisions.md` — ключевые решения и почему
 - `@context/04-progress.md` — статус и TODO
+- `@context/05-frontend-backend-split.md` — план выноса бэкенда на Laravel API (отдельный сервер)
